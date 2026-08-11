@@ -4,11 +4,7 @@
    ============================================ */
 
    document.addEventListener('DOMContentLoaded', () => {
-    // =========================================
-    // CONFIGURAÇÃO — A URL padrão pode ser
-    // alterada pelo usuário nas configurações (⚙️)
-    // =========================================
-    const DEFAULT_COBALT_URL = 'https://api.cobalt.tools';
+    const DOWNLOAD_API = '/api/download';
 
     // --- DOM Elements ---
     const navbar = document.getElementById('navbar');
@@ -19,59 +15,8 @@
     const resultCard = document.getElementById('result-card');
     const platformBtns = document.querySelectorAll('.platform-btn');
     const faqItems = document.querySelectorAll('.faq-item');
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsModal = document.getElementById('settings-modal');
-    const settingsOverlay = document.getElementById('settings-overlay');
-    const settingsClose = document.getElementById('settings-close');
-    const apiUrlInput = document.getElementById('api-url-input');
-    const saveSettingsBtn = document.getElementById('save-settings-btn');
 
     let selectedPlatform = 'instagram';
-    let cobaltUrl = localStorage.getItem('cobalt_api_url') || DEFAULT_COBALT_URL;
-
-    // Initialize input with saved URL
-    if (apiUrlInput) {
-        apiUrlInput.value = cobaltUrl;
-    }
-
-    // =========================================
-    // Settings Modal
-    // =========================================
-    function openSettings() {
-        apiUrlInput.value = cobaltUrl;
-        settingsModal.classList.add('active');
-        settingsOverlay.classList.add('active');
-    }
-
-    function closeSettings() {
-        settingsModal.classList.remove('active');
-        settingsOverlay.classList.remove('active');
-    }
-
-    if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
-    if (settingsClose) settingsClose.addEventListener('click', closeSettings);
-    if (settingsOverlay) settingsOverlay.addEventListener('click', closeSettings);
-
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', () => {
-            const newUrl = apiUrlInput.value.trim().replace(/\/+$/, '');
-            if (newUrl) {
-                cobaltUrl = newUrl;
-                localStorage.setItem('cobalt_api_url', cobaltUrl);
-                showStatus('✅ URL da API salva com sucesso!', 'success');
-                closeSettings();
-            } else {
-                showStatus('Por favor, insira uma URL válida', 'error');
-            }
-        });
-    }
-
-    // Close modal on Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && settingsModal.classList.contains('active')) {
-            closeSettings();
-        }
-    });
 
     // =========================================
     // Navbar scroll effect
@@ -257,7 +202,7 @@
 
         let response;
         try {
-            response = await fetch(cobaltUrl, {
+            response = await fetch(DOWNLOAD_API, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -268,7 +213,7 @@
         } catch (networkError) {
             console.error('Network error:', networkError);
             throw new Error(
-                '❌ Não foi possível conectar à API. Clique em ⚙️ para verificar a URL da sua instância Cobalt.'
+                '❌ Não foi possível conectar à API. Tente novamente em instantes.'
             );
         }
 
@@ -276,11 +221,11 @@
         if (!response.ok) {
             const errorHandlers = {
                 429: 'Muitas requisições. Aguarde um momento e tente novamente.',
-                401: 'Autenticação necessária. Sua instância Cobalt requer API Key.',
-                403: 'Acesso negado. Verifique as configurações da instância Cobalt.',
-                500: 'Erro interno do servidor Cobalt. Tente novamente em instantes.',
-                502: 'Servidor Cobalt indisponível. Verifique se a instância está rodando.',
-                503: 'Servidor Cobalt sobrecarregado. Tente novamente em instantes.'
+                401: 'Serviço temporariamente indisponível. Tente novamente mais tarde.',
+                403: 'Acesso negado. Tente novamente mais tarde.',
+                500: 'Erro interno do servidor. Tente novamente em instantes.',
+                502: 'Serviço de download indisponível. Tente novamente em instantes.',
+                503: 'Servidor sobrecarregado. Tente novamente em instantes.'
             };
             const msg = errorHandlers[response.status] || `Erro na API (HTTP ${response.status})`;
             throw new Error(`❌ ${msg}`);
@@ -290,7 +235,7 @@
         try {
             data = await response.json();
         } catch (parseError) {
-            throw new Error('❌ Resposta inválida da API. Verifique se a URL aponta para uma instância Cobalt.');
+            throw new Error('❌ Resposta inválida do servidor. Tente novamente.');
         }
 
         // Process response based on status field
@@ -300,14 +245,18 @@
     // =========================================
     // Handle Cobalt API Response
     // =========================================
+    // =========================================
+    // Handle Cobalt API Response
+    // =========================================
     function handleCobaltResponse(data, originalUrl) {
         switch (data.status) {
             case 'tunnel':
             case 'redirect':
-                // Single file download — url + filename returned
+                // Single file download — url + filename + thumb returned
                 showSingleResult({
                     url: data.url,
-                    filename: data.filename || 'video.mp4'
+                    filename: data.filename || 'video.mp4',
+                    thumb: data.thumb || data.thumbnail || null
                 }, originalUrl);
                 break;
 
@@ -338,7 +287,7 @@
             'error.api.service.unsupported': 'Esta plataforma não é suportada.',
             'error.api.service.disabled': 'Este serviço está desabilitado nesta instância.',
             'error.api.link.unsupported': 'Este tipo de link não é suportado.',
-            'error.api.auth.key.missing': 'Esta instância requer uma API Key. Configure nas ⚙️ Configurações.',
+            'error.api.auth.key.missing': 'Serviço temporariamente indisponível. Tente novamente mais tarde.',
             'error.api.auth.jwt.missing': 'Esta instância requer autenticação Bearer.',
         };
 
@@ -347,7 +296,7 @@
     }
 
     // =========================================
-    // Show Single Download Result
+    // Show Single Download Result & Auto-Trigger
     // =========================================
     function showSingleResult(data, originalUrl) {
         const resultTitle = document.getElementById('result-title');
@@ -359,23 +308,57 @@
         resultTitle.textContent = `Vídeo do ${platformName}`;
         resultMeta.textContent = `📁 ${data.filename}`;
 
-        // Reset preview
-        resultPreview.innerHTML = `
-            <div class="preview-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-            </div>
-        `;
+        // Render preview: Video player with poster or Image thumbnail
+        const thumbUrl = data.thumb || data.thumbnail || null;
+        const mediaUrl = data.url || null;
 
-        // Build download buttons
+        if (mediaUrl) {
+            const posterAttr = thumbUrl ? `poster="${escapeHtml(thumbUrl)}"` : '';
+            resultPreview.innerHTML = `
+                <video src="${escapeHtml(mediaUrl)}" ${posterAttr} controls muted loop playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>
+            `;
+        } else if (thumbUrl) {
+            resultPreview.innerHTML = `
+                <img src="${escapeHtml(thumbUrl)}" alt="Prévia do Vídeo" loading="lazy">
+            `;
+        } else {
+            resultPreview.innerHTML = `
+                <div class="preview-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                </div>
+            `;
+        }
+
+        // Build download buttons (Video and Audio MP3)
         actionsContainer.innerHTML = '';
 
-        const hdBtn = createDownloadButton(data.url, data.filename, 'Baixar HD', true);
-        actionsContainer.appendChild(hdBtn);
+        const videoBtn = createDownloadButton(data.url, data.filename, '🎬 Baixar Vídeo', true);
+        actionsContainer.appendChild(videoBtn);
+
+        const audioBtn = document.createElement('button');
+        audioBtn.className = 'action-btn secondary';
+        audioBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18V5l12-2v13"/>
+                <circle cx="6" cy="18" r="3"/>
+                <circle cx="18" cy="16" r="3"/>
+            </svg>
+            🎵 Baixar Áudio (MP3)
+        `;
+        audioBtn.onclick = (e) => {
+            e.preventDefault();
+            if (data.audio) {
+                triggerDownload(data.audio, data.audioFilename || (data.filename ? data.filename.replace(/\.[^/.]+$/, "") + '.mp3' : 'audio.mp3'));
+            } else {
+                fetchAndDownloadAudio(originalUrl, data.filename);
+            }
+        };
+        actionsContainer.appendChild(audioBtn);
 
         resultCard.classList.remove('hidden');
-        showStatus('✅ Vídeo pronto para download!', 'success');
+        showStatus('✅ Vídeo encontrado! Escolha se deseja baixar o vídeo ou apenas o áudio em MP3.', 'success');
         resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
@@ -508,18 +491,95 @@
     }
 
     // =========================================
-    // Trigger file download
+    // Trigger file download directly to device
     // =========================================
-    function triggerDownload(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || 'video.mp4';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showStatus('📥 Download iniciado!', 'success');
+    async function triggerDownload(url, filename) {
+        const targetFilename = filename || 'video.mp4';
+        showStatus('📥 Salvando arquivo no seu dispositivo...', 'info');
+
+        try {
+            // Tenta obter como Blob para forçar o salvamento direto sem abrir em nova aba (mesmo em domínios diferentes)
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = targetFilename;
+            document.body.appendChild(a);
+            a.click();
+
+            setTimeout(() => {
+                if (document.body.contains(a)) {
+                    document.body.removeChild(a);
+                }
+                URL.revokeObjectURL(blobUrl);
+            }, 2000);
+
+            showStatus('✅ Arquivo salvo no seu dispositivo!', 'success');
+        } catch (err) {
+            console.warn('Fallback para download direto por link:', err);
+
+            // Fallback se o Blob for bloqueado por CORS no CDN: clica no link diretamente
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = targetFilename;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+
+            setTimeout(() => {
+                if (document.body.contains(a)) {
+                    document.body.removeChild(a);
+                }
+            }, 1000);
+
+            showStatus('📥 Download iniciado no seu navegador!', 'success');
+        }
+    }
+
+    // =========================================
+    // Extract and download audio MP3
+    // =========================================
+    async function fetchAndDownloadAudio(url, baseFilename) {
+        const audioFilename = (baseFilename || 'audio.mp4').replace(/\.[^/.]+$/, "") + '.mp3';
+        showStatus('⏳ Extraindo áudio MP3...', 'info');
+
+        try {
+            const response = await fetch(DOWNLOAD_API, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url: url,
+                    downloadMode: 'audio',
+                    audioFormat: 'mp3',
+                    audioBitrate: '320'
+                })
+            });
+
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const data = await response.json();
+
+            if (data.status === 'tunnel' || data.status === 'redirect') {
+                triggerDownload(data.url, data.filename || audioFilename);
+            } else if (data.url) {
+                triggerDownload(data.url, audioFilename);
+            } else if (data.status === 'error') {
+                handleCobaltError(data);
+            } else {
+                throw new Error('Erro ao obter áudio.');
+            }
+        } catch (err) {
+            console.error('Audio download error:', err);
+            showStatus('❌ Não foi possível baixar o áudio em MP3. Tente baixar o vídeo.', 'error');
+        }
     }
 
     // =========================================

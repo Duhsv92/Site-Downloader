@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaveClip — Baixe Vídeos do Instagram, Facebook e TikTok</title>
-    <meta name="description" content="Baixe vídeos do Instagram, Facebook e TikTok gratuitamente. Rápido, fácil e sem marca d'água. Cole o link e baixe!">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <!-- Animated Background -->
     <div class="bg-animation">
@@ -24,12 +31,13 @@
         <div class="nav-container">
             <a href="#" class="nav-logo" id="nav-logo">
                 <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
-                    <path d="M10 16L14 20L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect width="32" height="32" rx="8" fill="url(#logoGrad)" />
+                    <path d="M10 16L14 20L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
                     <defs>
                         <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
-                            <stop stop-color="#7C3AED"/>
-                            <stop offset="1" stop-color="#EC4899"/>
+                            <stop stop-color="#7C3AED" />
+                            <stop offset="1" stop-color="#EC4899" />
                         </linearGradient>
                     </defs>
                 </svg>
@@ -39,12 +47,6 @@
                 <a href="#platforms" class="nav-link" id="nav-platforms">Plataformas</a>
                 <a href="#how-it-works" class="nav-link" id="nav-how">Como Funciona</a>
                 <a href="#faq" class="nav-link" id="nav-faq">FAQ</a>
-                <button class="settings-btn" id="settings-btn" title="Configurações da API">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                </button>
             </div>
         </div>
     </nav>
@@ -68,19 +70,22 @@
             <div class="platform-selector" id="platform-selector">
                 <button class="platform-btn active" data-platform="instagram" id="btn-instagram">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="platform-icon">
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                        <path
+                            d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
                     </svg>
                     Instagram
                 </button>
                 <button class="platform-btn" data-platform="facebook" id="btn-facebook">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="platform-icon">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        <path
+                            d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
                     Facebook
                 </button>
                 <button class="platform-btn" data-platform="tiktok" id="btn-tiktok">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="platform-icon">
-                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                        <path
+                            d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
                     </svg>
                     TikTok
                 </button>
@@ -90,30 +95,24 @@
             <div class="input-container" id="input-container">
                 <div class="input-wrapper">
                     <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                     </svg>
-                    <input
-                        type="url"
-                        id="url-input"
-                        class="url-input"
-                        placeholder="Cole o link do vídeo aqui..."
-                        autocomplete="off"
-                    >
+                    <input type="url" id="url-input" class="url-input" placeholder="Cole o link do vídeo aqui..."
+                        autocomplete="off">
                     <button class="paste-btn" id="paste-btn" title="Colar da área de transferência">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
                     </button>
                 </div>
                 <button class="download-btn" id="download-btn">
                     <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
-                    <span class="btn-text">Baixar Vídeo</span>
+                    <span class="btn-text">Buscar Vídeo</span>
                     <div class="btn-loader" id="btn-loader">
                         <div class="spinner"></div>
                     </div>
@@ -128,7 +127,7 @@
                 <div class="result-preview" id="result-preview">
                     <div class="preview-placeholder">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <polygon points="5 3 19 12 5 21 5 3"/>
+                            <polygon points="5 3 19 12 5 21 5 3" />
                         </svg>
                     </div>
                 </div>
@@ -138,17 +137,17 @@
                     <div class="result-actions">
                         <a href="#" class="action-btn primary" id="download-link" download>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="7 10 12 15 17 10"/>
-                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
                             Baixar HD
                         </a>
                         <a href="#" class="action-btn secondary" id="download-link-sd" download>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="7 10 12 15 17 10"/>
-                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
                             Baixar SD
                         </a>
@@ -170,7 +169,8 @@
                 <div class="platform-card" id="card-instagram">
                     <div class="platform-card-icon instagram-gradient">
                         <svg viewBox="0 0 24 24" fill="white">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                            <path
+                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
                         </svg>
                     </div>
                     <h3>Instagram</h3>
@@ -185,7 +185,8 @@
                 <div class="platform-card" id="card-facebook">
                     <div class="platform-card-icon facebook-gradient">
                         <svg viewBox="0 0 24 24" fill="white">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            <path
+                                d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                         </svg>
                     </div>
                     <h3>Facebook</h3>
@@ -200,7 +201,8 @@
                 <div class="platform-card" id="card-tiktok">
                     <div class="platform-card-icon tiktok-gradient">
                         <svg viewBox="0 0 24 24" fill="white">
-                            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                            <path
+                                d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
                         </svg>
                     </div>
                     <h3>TikTok</h3>
@@ -228,8 +230,8 @@
                     <div class="step-number">1</div>
                     <div class="step-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
                     </div>
                     <h3>Copie o Link</h3>
@@ -238,11 +240,12 @@
 
                 <div class="step-connector">
                     <svg viewBox="0 0 40 24" fill="none">
-                        <path d="M0 12h36M30 6l6 6-6 6" stroke="url(#connGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M0 12h36M30 6l6 6-6 6" stroke="url(#connGrad)" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
                         <defs>
                             <linearGradient id="connGrad" x1="0" y1="12" x2="40" y2="12">
-                                <stop stop-color="#7C3AED"/>
-                                <stop offset="1" stop-color="#EC4899"/>
+                                <stop stop-color="#7C3AED" />
+                                <stop offset="1" stop-color="#EC4899" />
                             </linearGradient>
                         </defs>
                     </svg>
@@ -252,8 +255,8 @@
                     <div class="step-number">2</div>
                     <div class="step-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                         </svg>
                     </div>
                     <h3>Cole o Link</h3>
@@ -262,11 +265,12 @@
 
                 <div class="step-connector">
                     <svg viewBox="0 0 40 24" fill="none">
-                        <path d="M0 12h36M30 6l6 6-6 6" stroke="url(#connGrad2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M0 12h36M30 6l6 6-6 6" stroke="url(#connGrad2)" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
                         <defs>
                             <linearGradient id="connGrad2" x1="0" y1="12" x2="40" y2="12">
-                                <stop stop-color="#7C3AED"/>
-                                <stop offset="1" stop-color="#EC4899"/>
+                                <stop stop-color="#7C3AED" />
+                                <stop offset="1" stop-color="#EC4899" />
                             </linearGradient>
                         </defs>
                     </svg>
@@ -276,9 +280,9 @@
                     <div class="step-number">3</div>
                     <div class="step-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
                     </div>
                     <h3>Baixe o Vídeo</h3>
@@ -325,11 +329,12 @@
                     <button class="faq-question" id="faq-btn-1">
                         <span>É realmente gratuito?</span>
                         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Sim! O SaveClip é 100% gratuito. Não cobramos nada para baixar vídeos. Sem taxas ocultas, sem assinaturas.</p>
+                        <p>Sim! O SaveClip é 100% gratuito. Não cobramos nada para baixar vídeos. Sem taxas ocultas, sem
+                            assinaturas.</p>
                     </div>
                 </div>
 
@@ -337,11 +342,12 @@
                     <button class="faq-question" id="faq-btn-2">
                         <span>Preciso criar uma conta?</span>
                         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Não! Não é necessário criar conta ou se registrar. Basta colar o link e baixar. Simples assim.</p>
+                        <p>Não! Não é necessário criar conta ou se registrar. Basta colar o link e baixar. Simples
+                            assim.</p>
                     </div>
                 </div>
 
@@ -349,11 +355,12 @@
                     <button class="faq-question" id="faq-btn-3">
                         <span>Os vídeos do TikTok vêm sem marca d'água?</span>
                         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Sim! Nosso sistema remove automaticamente a marca d'água dos vídeos do TikTok, entregando um vídeo limpo e em alta qualidade.</p>
+                        <p>Sim! Nosso sistema remove automaticamente a marca d'água dos vídeos do TikTok, entregando um
+                            vídeo limpo e em alta qualidade.</p>
                     </div>
                 </div>
 
@@ -361,11 +368,12 @@
                     <button class="faq-question" id="faq-btn-4">
                         <span>Qual a qualidade máxima do vídeo?</span>
                         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Oferecemos download na qualidade original do vídeo, que pode ser até 1080p (Full HD) ou superior, dependendo da plataforma e do upload original.</p>
+                        <p>Oferecemos download na qualidade original do vídeo, que pode ser até 1080p (Full HD) ou
+                            superior, dependendo da plataforma e do upload original.</p>
                     </div>
                 </div>
 
@@ -373,11 +381,12 @@
                     <button class="faq-question" id="faq-btn-5">
                         <span>Funciona no celular?</span>
                         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Sim! O SaveClip funciona perfeitamente em qualquer dispositivo — celular, tablet ou computador. Nosso site é totalmente responsivo.</p>
+                        <p>Sim! O SaveClip funciona perfeitamente em qualquer dispositivo — celular, tablet ou
+                            computador. Nosso site é totalmente responsivo.</p>
                     </div>
                 </div>
 
@@ -385,11 +394,12 @@
                     <button class="faq-question" id="faq-btn-6">
                         <span>É seguro usar o SaveClip?</span>
                         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
+                            <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Totalmente seguro! Não armazenamos seus dados pessoais nem os vídeos baixados. Todo o processo é criptografado e seguro.</p>
+                        <p>Totalmente seguro! Não armazenamos seus dados pessoais nem os vídeos baixados. Todo o
+                            processo é criptografado e seguro.</p>
                     </div>
                 </div>
             </div>
@@ -403,18 +413,20 @@
                 <div class="footer-brand">
                     <a href="#" class="nav-logo" id="footer-logo">
                         <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
-                            <rect width="32" height="32" rx="8" fill="url(#logoGrad2)"/>
-                            <path d="M10 16L14 20L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect width="32" height="32" rx="8" fill="url(#logoGrad2)" />
+                            <path d="M10 16L14 20L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
                             <defs>
                                 <linearGradient id="logoGrad2" x1="0" y1="0" x2="32" y2="32">
-                                    <stop stop-color="#7C3AED"/>
-                                    <stop offset="1" stop-color="#EC4899"/>
+                                    <stop stop-color="#7C3AED" />
+                                    <stop offset="1" stop-color="#EC4899" />
                                 </linearGradient>
                             </defs>
                         </svg>
                         <span>SaveClip</span>
                     </a>
-                    <p class="footer-desc">A maneira mais fácil e rápida de baixar vídeos das suas redes sociais favoritas.</p>
+                    <p class="footer-desc">A maneira mais fácil e rápida de baixar vídeos das suas redes sociais
+                        favoritas.</p>
                 </div>
                 <div class="footer-links-group">
                     <h4>Plataformas</h4>
@@ -435,45 +447,7 @@
         </div>
     </footer>
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settings-overlay"></div>
-    <div class="settings-modal" id="settings-modal">
-        <div class="modal-header">
-            <h3>⚙️ Configurações da API</h3>
-            <button class="modal-close" id="settings-close">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-        </div>
-        <div class="modal-body">
-            <p class="modal-description">
-                Para funcionar, o SaveClip precisa se conectar a uma instância do <strong>Cobalt</strong>.
-                Hospede sua própria instância ou use uma pública.
-            </p>
-            <label class="modal-label" for="api-url-input">URL da API Cobalt</label>
-            <input
-                type="url"
-                id="api-url-input"
-                class="modal-input"
-                placeholder="https://sua-instancia-cobalt.com"
-                value="https://api.cobalt.tools"
-            >
-            <p class="modal-hint">
-                💡 <a href="https://github.com/imputnet/cobalt" target="_blank" rel="noopener">Como hospedar sua instância Cobalt</a>
-            </p>
-        </div>
-        <div class="modal-footer">
-            <button class="modal-btn-cancel" id="settings-cancel" onclick="document.getElementById('settings-modal').classList.remove('active'); document.getElementById('settings-overlay').classList.remove('active');">
-                Cancelar
-            </button>
-            <button class="modal-btn-save" id="save-settings-btn">
-                Salvar
-            </button>
-        </div>
-    </div>
-
     <script src="app.js"></script>
 </body>
+
 </html>

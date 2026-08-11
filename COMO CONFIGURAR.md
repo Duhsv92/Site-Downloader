@@ -1,145 +1,106 @@
-# 🚀 Guia: Como Configurar a API Cobalt para o SaveClip
+# 🚀 Guia Completo: Como Configurar e Rodar o SaveClip
 
-Para que o SaveClip funcione de verdade (baixar vídeos do Instagram, Facebook e TikTok),
-você precisa de uma **instância da API Cobalt** rodando. Aqui estão as opções:
+O **SaveClip** é uma aplicação completa para baixar vídeos e extrair áudio em MP3 do **Instagram, Facebook e TikTok**.
 
----
-
-## Opção 1: Deploy no Railway (Mais Fácil — Recomendado)
-
-O **Railway** permite fazer deploy do Cobalt com **1 clique** e tem um plano gratuito.
-
-### Passo a passo:
-
-1. **Crie uma conta no Railway**
-   - Acesse [railway.com](https://railway.com) e faça login com GitHub
-
-2. **Use o template do Cobalt**
-   - Acesse: [railway.com/new](https://railway.com/new)
-   - Pesquise por **"Cobalt"** nos templates
-   - Escolha **"Cobalt Tools Complete Setup"** (inclui API + Web UI)
-   - Clique em **"Deploy"**
-
-3. **Aguarde o deploy** (2-3 minutos)
-   - O Railway vai provisionar automaticamente a API
-
-4. **Gere um domínio público**
-   - Clique no serviço da **API** no painel do Railway
-   - Vá em **Settings → Networking → Generate Domain**
-   - Você vai receber algo como: `cobalt-api-xxxxx.up.railway.app`
-
-5. **Configure no SaveClip**
-   - Abra o SaveClip no navegador
-   - Clique no ⚙️ (engrenagem) na barra de navegação
-   - Cole a URL da sua API: `https://cobalt-api-xxxxx.up.railway.app`
-   - Clique em **Salvar**
-
-6. **Pronto!** 🎉 Agora você pode baixar vídeos!
-
-> **💰 Custo:** Railway oferece $5/mês de créditos grátis, suficiente para uso pessoal.
+A aplicação é dividida em duas partes para garantir total segurança:
+1. **Instância da API Cobalt** (hospedada no Railway, Render ou VPS, responsável por processar as mídias).
+2. **Servidor / Serverless SaveClip** (`server.py` ou `api/download.py`), que intercepta as chamadas do front-end e **esconde o endereço da sua API e chaves privadas** de todos os visitantes do site.
 
 ---
 
-## Opção 2: Deploy com Docker (VPS ou Local)
+## 💻 1. Rodando o SaveClip Localmente
 
-Se você tem um servidor VPS ou quer rodar localmente:
-
-### Pré-requisitos:
-- Docker e Docker Compose instalados
-
-### Passo a passo:
-
-1. **Crie uma pasta para o projeto:**
+1. **Instale as dependências:**
    ```bash
-   mkdir cobalt-api && cd cobalt-api
+   pip install -r requirements.txt
    ```
 
-2. **Crie o arquivo `docker-compose.yml`:**
-   ```yaml
-   version: '3.8'
-
-   services:
-     cobalt-api:
-       image: ghcr.io/imputnet/cobalt:latest
-       container_name: cobalt-api
-       restart: unless-stopped
-       ports:
-         - "9000:9000"
-       environment:
-         - API_URL=http://localhost:9000
-       # Opcional: para cookies de autenticação de plataformas
-       # volumes:
-       #   - ./cookies.json:/cobalt/cookies.json
-   ```
-
-3. **Inicie o container:**
+2. **Configure o arquivo `.env`:**
+   Copie o exemplo do `.env.example` para `.env`:
    ```bash
-   docker compose up -d
+   copy .env.example .env   # no Linux/Mac: cp .env.example .env
    ```
 
-4. **Teste se está funcionando:**
+   Edite o arquivo `.env` e defina a URL da sua API:
+   ```env
+   COBALT_API_URL=https://api-production-664d8.up.railway.app
+   PORT=5000
+   ```
+
+3. **Inicie o servidor:**
    ```bash
-   curl http://localhost:9000/
+   python server.py
    ```
-   Deve retornar informações sobre a instância.
 
-5. **Configure no SaveClip:**
-   - Clique no ⚙️ e cole: `http://localhost:9000`
-
-> **⚠️ Para acesso externo:** Use um reverse proxy (Nginx) com HTTPS.
+4. **Acesse no navegador:**
+   Abra **http://localhost:5000** 🎉
+   - A URL da API Cobalt fica salva somente no `.env` do backend, garantindo que os visitantes nunca tenham acesso ao seu endereço privado do Railway.
 
 ---
 
-## Opção 3: Deploy no Render (Alternativa Grátis)
+## 🌐 2. Deploy no GitHub + Vercel (Recomendado)
 
-1. Acesse [render.com](https://render.com) e crie uma conta
-2. Clique em **"New" → "Web Service"**
-3. Em "Image URL", use: `ghcr.io/imputnet/cobalt:latest`
-4. Configure:
-   - **Name:** cobalt-api
-   - **Region:** escolha a mais próxima
-   - **Plan:** Free
-5. Adicione a variável de ambiente:
-   - `API_URL` = a URL gerada pelo Render
-6. Clique em **Deploy**
-7. Use a URL gerada nas configurações do SaveClip
+O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/vercel.json) e funções Serverless Python em [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py).
 
----
+### Passo a passo para publicação:
 
-## Testando sua instância
+1. **Suba seu projeto para o GitHub:**
+   - O arquivo `.env` já está protegido pelo `.gitignore` e não será enviado para o repositório.
+   ```bash
+   git add .
+   git commit -m "Deploy SaveClip"
+   git push origin main
+   ```
 
-Depois de configurar, teste com este comando (troque a URL):
+2. **Conecte na Vercel:**
+   - Acesse o painel da [Vercel](https://vercel.com/) e faça login.
+   - Clique em **Add New...** → **Project**.
+   - Importe o repositório do GitHub (ex: `Site-Downloader`).
 
-```bash
-curl -X POST "https://SUA-INSTANCIA.com/" \
-     -H "Content-Type: application/json" \
-     -H "Accept: application/json" \
-     -d '{"url": "https://www.tiktok.com/@tiktok/video/7106594312292453675", "videoQuality": "1080"}'
-```
+3. **Configure as Variáveis de Ambiente na Vercel:**
+   - Na tela de Deploy (ou em **Settings → Environment Variables**), adicione:
+     - **Key (Nome):** `COBALT_API_URL`
+     - **Value (Valor):** `https://api-production-664d8.up.railway.app`
+   - Clique em **Add**.
 
-A resposta deve conter `"status": "tunnel"` ou `"status": "redirect"` com uma URL de download.
-
----
-
-## Dúvidas Frequentes
-
-**P: Posso usar a API pública `api.cobalt.tools`?**
-R: A API pública tem proteção anti-bot (Turnstile) e **não é feita para uso em projetos externos**.
-Você precisa hospedar sua própria instância.
-
-**P: É gratuito?**
-R: O Cobalt é open source e grátis. O custo é apenas da hospedagem (Railway tem $5/mês grátis).
-
-**P: Quais plataformas são suportadas?**
-R: Instagram, Facebook, TikTok, YouTube, Twitter/X, Reddit, Pinterest, Tumblr, e muitas outras.
-
-**P: Os vídeos ficam salvos no servidor?**
-R: Não! O Cobalt apenas faz proxy do download. Nenhum vídeo é armazenado.
+4. **Clique em Deploy:**
+   - A Vercel usará o `vercel.json` para servir o front-end e executar o backend como **Function Serverless** de forma 100% gratuita.
 
 ---
 
-## Links Úteis
+## 🔑 3. Como Trocar o Link da API ou a API Key
 
-- 📦 [Repositório Cobalt (GitHub)](https://github.com/imputnet/cobalt)
-- 🚂 [Railway Templates](https://railway.com/templates)
-- 📖 [Documentação da API](https://github.com/imputnet/cobalt/blob/main/docs/api.md)
+Se no futuro você alterar sua instância do Railway ou precisar atualizar o link/chave da API, você pode alterar em 3 locais simples:
+
+- **Localmente:** Altere a linha `COBALT_API_URL` no arquivo [.env](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/.env).
+- **Na Vercel:** Atualize o valor em **Settings → Environment Variables** no painel da Vercel.
+- **No Código Python:** Altere a variável `DEFAULT_COBALT_URL` nos arquivos [server.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/server.py) e [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py).
+
+---
+
+## 🛠️ 4. Recursos e Funcionalidades
+
+- 🔍 **Busca de Vídeos sem Download Forçado:** O botão **Buscar Vídeo** consulta a mídia e exibe a miniatura/prévia antes de iniciar qualquer salvamento.
+- 🎬 **Prévia em Player de Vídeo:** Exibe a capa/thumbnail e leitor de vídeo direto na caixa de resultado.
+- 📥 **Download Direto para o Dispositivo:** Sistema por `Blob` que força o salvamento do arquivo diretamente na pasta **Downloads** do PC ou celular.
+- 🎵 **Extração de Áudio MP3 (320 kbps):** Opção para extrair e baixar apenas o áudio do vídeo na qualidade máxima (HQ 320kbps).
+
+---
+
+## 🚂 5. Opção: Hospedando a Própria Instância Cobalt no Railway
+
+Caso queira hospedar sua própria instância da API Cobalt:
+
+1. Acesse [railway.com](https://railway.com) e crie uma conta.
+2. Acesse `railway.com/new`, busque pelo template **"Cobalt"** e clique em **Deploy**.
+3. No painel do Railway, vá em **Settings → Networking → Generate Domain**.
+4. Copie o domínio gerado (ex: `https://cobalt-api-xxxxx.up.railway.app`) e defina em `COBALT_API_URL`.
+
+---
+
+## 📖 Links Úteis
+
+- 📦 [Repositório Oficial do Cobalt](https://github.com/imputnet/cobalt)
+- 🚂 [Templates do Railway](https://railway.com/templates)
+- 📖 [Documentação da API Cobalt](https://github.com/imputnet/cobalt/blob/main/docs/api.md)
+

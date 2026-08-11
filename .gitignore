@@ -1,0 +1,22 @@
+# Ambiente Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.production
+
+# Vercel
+.vercel/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
