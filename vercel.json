@@ -10,6 +10,9 @@
     {
       "src": "/api/(.*)",
       "dest": "api/download.py"
+    },
+    {
+      "handle": "filesystem"
     }
   ]
 }
