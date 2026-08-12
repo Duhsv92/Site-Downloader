@@ -4,6 +4,26 @@
     {
       "src": "api/download.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "style.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "favicon.png",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "favicon.svg",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -12,7 +32,8 @@
       "dest": "api/download.py"
     },
     {
-      "handle": "filesystem"
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
