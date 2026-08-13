@@ -90,6 +90,15 @@ def _base_opts():
         "socket_timeout": 30,
         "retries": 3,
         "no_color": True,
+        # Contorna o bloqueio "Sign in to confirm you're not a bot" do YouTube,
+        # muito comum em IPs de datacenter (Railway, VPS, etc). Tenta vários
+        # player clients (tv/android/ios) que são menos marcados como bot do
+        # que o player "web" padrão.
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["tv", "android", "ios", "web_safari"]
+            }
+        },
     }
     ff = _ffmpeg_location()
     if ff:

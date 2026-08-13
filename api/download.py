@@ -112,6 +112,8 @@ def api_download():
                 build_youtube_result(url, body.get("videoQuality", "1080"))
             ), 200
         except Exception as exc:
+            # Log do erro real para diagnóstico nos logs do Railway
+            print(f"[yt-dlp/metadata] ERRO: {exc}", flush=True)
             return jsonify({
                 "status": "error",
                 "error": {"code": map_ytdlp_error(exc)}
@@ -250,6 +252,8 @@ def ytdlp_download():
     try:
         filepath, filename, tmpdir = download_to_temp(url, mode, quality)
     except Exception as exc:
+        # Log do erro real para diagnóstico nos logs do Railway
+        print(f"[yt-dlp/download] ERRO ({mode}): {exc}", flush=True)
         return jsonify({
             "status": "error",
             "error": {"code": map_ytdlp_error(exc)}

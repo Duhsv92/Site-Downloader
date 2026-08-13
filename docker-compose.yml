@@ -1,0 +1,23 @@
+# ============================================================
+# SaveClip — Deploy em qualquer VPS com Docker (ex: Oracle Cloud)
+#
+# Uso:
+#   docker compose up -d --build     # construir e subir
+#   docker compose logs -f           # acompanhar logs
+#   docker compose down              # parar
+# ============================================================
+services:
+  saveclip:
+    build: .                  # constrói a imagem a partir do Dockerfile local
+    image: saveclip:latest    # nome da imagem gerada
+    container_name: saveclip
+    restart: unless-stopped   # volta a subir sozinho se a VM reiniciar
+    ports:
+      # Formato: "PORTA_DA_VM:PORTA_DO_CONTAINER"
+      # 80 = HTTP padrão -> site acessível em http://IP (sem digitar :8080)
+      - "80:8080"
+      # 8080 também exposto, opcional, para teste direto na porta 8080
+      - "8080:8080"
+    env_file:
+      # Lê as variáveis do arquivo .env criado na VM (COBALT_API_URL, PORT...)
+      - .env

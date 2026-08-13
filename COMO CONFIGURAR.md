@@ -8,6 +8,8 @@ A aplicação é dividida em duas partes para garantir total segurança:
 
 > ▶️ **YouTube é baixado via `yt-dlp`** (não usa mais a Cobalt): o servidor extrai os metadados e baixa o vídeo (MP4) ou áudio (MP3) diretamente, com qualidade até 1080p (padrão) ou superior, usando o **ffmpeg** para mesclar vídeo+áudio e converter para MP3. Veja a seção 4.
 
+> ✅ **Status atual (13/08/2026):** o SaveClip está **no ar e funcional** em **https://cobalt-tools-complete-setup-production.up.railway.app** — deploy feito via **Railway CLI** no projeto existente **"Cobalt Tools - Complete Setup"**, com YouTube (MP4 1080p + MP3 320kbps), Instagram, Facebook e TikTok funcionando. Veja a **seção 6** para o processo completo e como atualizar o site.
+
 ---
 
 ## 💻 1. Rodando o SaveClip Localmente
@@ -26,16 +28,21 @@ A aplicação é dividida em duas partes para garantir total segurança:
    Edite o arquivo `.env` e defina a URL da sua API:
    ```env
    COBALT_API_URL=https://api-production-664d8.up.railway.app
-   PORT=5000
+   PORT=8080
    ```
 
-3. **Inicie o servidor:**
+3. **Instale o ffmpeg** (obrigatório para o YouTube em MP4/MP3 funcionar localmente):
+   - **Windows:** `winget install Gyan.FFmpeg`
+   - **macOS:** `brew install ffmpeg`
+   - **Ubuntu/Debian:** `sudo apt install ffmpeg`
+
+4. **Inicie o servidor:**
    ```bash
    python server.py
    ```
 
-4. **Acesse no navegador:**
-   Abra **http://localhost:5000** 🎉
+5. **Acesse no navegador:**
+   Abra **http://localhost:8080** 🎉
    - A URL da API Cobalt fica salva somente no `.env` do backend, garantindo que os visitantes nunca tenham acesso ao seu endereço privado do Railway.
 
 ---
@@ -74,10 +81,14 @@ O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/E
 
 ## 🔑 3. Como Trocar o Link da API ou a API Key
 
-Se no futuro você alterar sua instância do Railway ou precisar atualizar o link/chave da API, você pode alterar em 3 locais simples:
+Se no futuro você alterar sua instância do Railway ou precisar atualizar o link/chave da API, você pode alterar em alguns locais simples:
 
 - **Localmente:** Altere a linha `COBALT_API_URL` no arquivo [.env](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/.env).
 - **Na Vercel:** Atualize o valor em **Settings → Environment Variables** no painel da Vercel.
+- **No Railway:** Atualize o valor em **Settings → Variables** do serviço no painel do Railway, ou pelo CLI:
+  ```bash
+  railway variables set COBALT_API_URL=https://nova-url-da-api.up.railway.app
+  ```
 - **No Código Python:** Altere a variável `DEFAULT_COBALT_URL` nos arquivos [server.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/server.py) e [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py).
 
 ---
@@ -96,6 +107,8 @@ Se no futuro você alterar sua instância do Railway ou precisar atualizar o lin
 > - **Ubuntu/Debian:** `sudo apt install ffmpeg`
 >
 > Se o ffmpeg não estiver na pasta PATH, defina a variável `FFMPEG_PATH` apontando para o executável. Sem ffmpeg, o vídeo é baixado em qualidade reduzida (apenas formatos progressivos) e o MP3 fica indisponível (erro `error.api.ffmpeg.missing`).
+
+> 🔧 **Bloqueio do YouTube ("Sign in to confirm you're not a bot"):** em IPs de datacenter (Railway, VPS etc.) o YouTube costuma bloquear o player padrão (`web`). O projeto já contorna isso usando **player clients alternativos** (`tv`, `android`, `ios`, `web_safari`), configurados no `_base_opts()` de [api/ytdlp.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/ytdlp.py). Se o erro `error.api.youtube.login` aparecer, é sinal de bloqueio — verifique os logs (`railway logs`).
 
 > ⚠️ **Limitações na Vercel:** as funções Serverless têm limite de tempo (10s no plano Hobby) e de tamanho de resposta (~4,5 MB), além de não garantirem o ffmpeg. Para downloads de YouTube em produção, prefira rodar o `server.py` em uma VPS/Railway (com ffmpeg instalado) em vez do deploy Vercel, ou mantenha a Vercel apenas para as demais plataformas via Cobalt.
 
@@ -116,23 +129,74 @@ Caso queira hospedar sua própria instância da API Cobalt:
 
 Este é o deploy **recomendado para o YouTube funcionar 100%** em produção: o servidor `server.py` serve o site E a API, com **ffmpeg** incluído na imagem Docker (mesmo comportamento do ambiente local).
 
+> ✅ **Como está hoje:** o SaveClip está publicado em **https://cobalt-tools-complete-setup-production.up.railway.app**, no projeto **"Cobalt Tools - Complete Setup"**, usando a **Opção A** abaixo (Railway CLI, sem GitHub).
+
+### Opção A — Deploy via Railway CLI (sem GitHub) ✅ *(método usado atualmente)*
+
+1. **Instale o Railway CLI** (requer Node.js):
+   ```bash
+   npm install -g @railway/cli
+   ```
+
+2. **Faça login** (abre o navegador para autorizar):
+   ```bash
+   railway login
+   ```
+
+3. **Vincule a pasta do projeto ao serviço desejado:**
+   ```bash
+   railway link
+   ```
+   Selecione workspace, projeto, ambiente (`production`) e serviço. Para usar um projeto/serviço específico sem menus:
+   ```bash
+   railway link -p <PROJECT_ID> -s "<SERVICE_NAME>" -e production
+   ```
+
+4. **Configure a variável de ambiente:**
+   ```bash
+   railway variables set COBALT_API_URL=https://api-production-664d8.up.railway.app
+   ```
+   > 🔑 A `COBALT_API_URL` deve apontar para a **API Cobalt** que processa Instagram, Facebook e TikTok (veja a seção 5).
+
+5. **Envie o código e faça o deploy:**
+   ```bash
+   railway up
+   ```
+   O Railway detecta o [Dockerfile](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/Dockerfile) (imagem `python:3.12-slim` + `ffmpeg` instalado) e o [railway.json](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/railway.json). Para rodar em segundo plano:
+   ```bash
+   railway up --detach
+   ```
+
+6. **Gere o domínio público** (se ainda não tiver):
+   ```bash
+   railway domain
+   ```
+
+7. Pronto! O site fica disponível no domínio gerado com **todas** as plataformas funcionando: Instagram, Facebook, TikTok (via Cobalt) e YouTube em alta qualidade + MP3 320kbps (via yt-dlp + ffmpeg).
+
+#### 🔄 Atualizar o site depois de mexer no código
+
+Como o deploy vem da sua máquina, basta repetir:
+```bash
+railway up
+```
+Acompanhe com `railway logs`, `railway status` e `railway deployment list`.
+
+### Opção B — Deploy via GitHub (deploy automático)
+
 1. **Suba o projeto para o GitHub** (o `.env` não vai por causa do `.gitignore`).
-
-2. **Crie um novo projeto no Railway** (`railway.com` → **New Project** → **Deploy from GitHub repo**).
-
-3. O Railway detecta o [railway.json](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/railway.json) e o [Dockerfile](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/Dockerfile) automaticamente (imagem `python:3.12-slim` + `ffmpeg` instalado).
-
-4. **Configure as variáveis de ambiente** (Settings → Variables):
+2. Crie o projeto no Railway (`railway.com` → **New Project** → **Deploy from GitHub repo**) e selecione o repositório.
+3. Configure as variáveis de ambiente (Settings → Variables):
    ```env
    COBALT_API_URL=https://api-production-664d8.up.railway.app
    PORT=8080
    ```
-
-5. **Gere o domínio público**: Settings → Networking → **Generate Domain**.
-
-6. Pronto! O site fica disponível em `https://seu-app.up.railway.app` com **todas** as plataformas funcionando: Instagram, Facebook, TikTok (via Cobalt) e YouTube em alta qualidade + MP3 320kbps (via yt-dlp + ffmpeg).
+4. Gere o domínio público (Settings → Networking → **Generate Domain**).
+5. Pronto! O GitHub fica conectado e cada `git push` faz deploy automático.
 
 > 💡 O mesmo `Dockerfile` também funciona no **Render** (Web Service → Docker) ou em qualquer **VPS** com Docker.
+
+> ⚠️ **Limite do plano grátis do Railway:** o plano gratuito limita a quantidade de recursos provisionados. Se a sua conta já tem outros serviços (ex: instância Cobalt), pode não ser possível criar um **projeto novo**. Soluções: usar um **serviço já existente** (como foi feito aqui, com `railway link` + `railway up`) ou excluir recursos desnecessários (ex: a interface web da Cobalt — desnecessária se você já tem o seu próprio front-end).
 
 ---
 
@@ -141,5 +205,6 @@ Este é o deploy **recomendado para o YouTube funcionar 100%** em produção: o 
 - 📦 [Repositório Oficial do Cobalt](https://github.com/imputnet/cobalt)
 - 🎞️ [yt-dlp](https://github.com/yt-dlp/yt-dlp) — downloader de vídeo usado para o YouTube
 - 🚂 [Templates do Railway](https://railway.com/templates)
+- 🛠️ [Railway CLI (GitHub)](https://github.com/railwayapp/cli) — usado para o deploy local via `railway up`
 - 📖 [Documentação da API Cobalt](https://github.com/imputnet/cobalt/blob/main/docs/api.md)
 
