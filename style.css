@@ -25,6 +25,7 @@
     --instagram-gradient: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
     --facebook-gradient: linear-gradient(135deg, #1877F2, #0a5dc2);
     --tiktok-gradient: linear-gradient(135deg, #00f2ea, #ff0050);
+    --youtube-gradient: linear-gradient(135deg, #FF0000, #8b0000);
 
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -754,6 +755,10 @@ ul {
     background: var(--tiktok-gradient);
 }
 
+.youtube-gradient {
+    background: var(--youtube-gradient);
+}
+
 .platform-card h3 {
     font-size: 1.3rem;
     font-weight: 700;
@@ -1081,6 +1086,10 @@ ul {
 
 .platform-card:nth-child(3) {
     transition-delay: 0.2s;
+}
+
+.platform-card:nth-child(4) {
+    transition-delay: 0.3s;
 }
 
 .step-card:nth-child(1) {

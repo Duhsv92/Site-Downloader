@@ -1,6 +1,7 @@
 /* ============================================
    SaveClip — Application Logic
-   Integração com Cobalt API (self-hosted)
+   Integração com Cobalt API (Instagram, Facebook, TikTok)
+   e yt-dlp (YouTube)
    ============================================ */
 
    document.addEventListener('DOMContentLoaded', () => {
@@ -38,6 +39,7 @@
             const placeholders = {
                 instagram: 'Cole o link do Instagram aqui...',
                 facebook: 'Cole o link do Facebook aqui...',
+                youtube: 'Cole o link do YouTube aqui...',
                 tiktok: 'Cole o link do TikTok aqui...'
             };
             urlInput.placeholder = placeholders[selectedPlatform];
@@ -72,6 +74,8 @@
             detected = 'instagram';
         } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) {
             detected = 'facebook';
+        } else if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+            detected = 'youtube';
         } else if (lower.includes('tiktok.com') || lower.includes('vm.tiktok.com')) {
             detected = 'tiktok';
         }
@@ -131,6 +135,7 @@
         const patterns = {
             instagram: /^https?:\/\/(www\.)?(instagram\.com|instagr\.am)\/.+/i,
             facebook: /^https?:\/\/(www\.)?(facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)\/.+/i,
+            youtube: /^https?:\/\/(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\/.+/i,
             tiktok: /^https?:\/\/(www\.|vm\.)?(tiktok\.com)\/.+/i
         };
 
@@ -143,7 +148,7 @@
         }
 
         if (!matchedPlatform) {
-            return { valid: false, message: 'Link inválido. Use um link do Instagram, Facebook ou TikTok' };
+            return { valid: false, message: 'Link inválido. Use um link do Instagram, Facebook, YouTube ou TikTok' };
         }
 
         return { valid: true, platform: matchedPlatform };
@@ -186,7 +191,8 @@
     });
 
     // =========================================
-    // COBALT API — Main Processing
+    // BACKEND — Processamento principal
+    // (YouTube via yt-dlp; demais via Cobalt)
     // =========================================
     async function processWithCobalt(url) {
         showStatus('⏳ Processando seu vídeo...', 'info');
@@ -256,7 +262,9 @@
                 showSingleResult({
                     url: data.url,
                     filename: data.filename || 'video.mp4',
-                    thumb: data.thumb || data.thumbnail || null
+                    thumb: data.thumb || data.thumbnail || null,
+                    audio: data.audio || null,
+                    audioFilename: data.audioFilename || null
                 }, originalUrl);
                 break;
 
@@ -289,6 +297,11 @@
             'error.api.link.unsupported': 'Este tipo de link não é suportado.',
             'error.api.auth.key.missing': 'Serviço temporariamente indisponível. Tente novamente mais tarde.',
             'error.api.auth.jwt.missing': 'Esta instância requer autenticação Bearer.',
+            'error.api.youtube.login': 'O YouTube exige login nesta instância. Verifique se o servidor tem a configuração de YouTube habilitada.',
+            'error.api.youtube.private': 'Este vídeo do YouTube é privado ou não está disponível.',
+            'error.api.youtube.region': 'Este vídeo do YouTube não está disponível na sua região.',
+            'error.api.youtube.membership': 'Este vídeo do YouTube é exclusivo para membros do canal.',
+            'error.api.ffmpeg.missing': 'O servidor não tem o ffmpeg instalado — necessário para o YouTube. Verifique a configuração.',
         };
 
         const msg = errorMessages[errorCode] || `Erro: ${errorCode || 'desconhecido'}`;
@@ -308,19 +321,37 @@
         resultTitle.textContent = `Vídeo do ${platformName}`;
         resultMeta.textContent = `📁 ${data.filename}`;
 
-        // Render preview: Video player with poster or Image thumbnail
+        // Render preview: Thumbnail image whenever available.
+        // O player <video> com a URL direta do serviço (ex: tunnel da Cobalt)
+        // normalmente falha no navegador (autenticação via header / Range /
+        // formato), deixando a prévia toda preta — por isso a thumbnail
+        // é sempre preferida. O yt-dlp já retorna preview: 'image'.
         const thumbUrl = data.thumb || data.thumbnail || null;
         const mediaUrl = data.url || null;
 
-        if (mediaUrl) {
-            const posterAttr = thumbUrl ? `poster="${escapeHtml(thumbUrl)}"` : '';
-            resultPreview.innerHTML = `
-                <video src="${escapeHtml(mediaUrl)}" ${posterAttr} controls muted loop playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>
-            `;
-        } else if (thumbUrl) {
+        if (thumbUrl) {
             resultPreview.innerHTML = `
                 <img src="${escapeHtml(thumbUrl)}" alt="Prévia do Vídeo" loading="lazy">
             `;
+        } else if (mediaUrl) {
+            // Sem thumbnail: tenta o player de vídeo com a URL direta.
+            // Se o navegador não conseguir reproduzir (tunnel com auth etc.),
+            // o fallback mostra o placeholder em vez de deixar a prévia preta.
+            resultPreview.innerHTML = `
+                <video id="preview-video" src="${escapeHtml(mediaUrl)}" controls muted loop playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>
+            `;
+            const videoEl = resultPreview.querySelector('#preview-video');
+            if (videoEl) {
+                videoEl.addEventListener('error', () => {
+                    resultPreview.innerHTML = `
+                        <div class="preview-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                        </div>
+                    `;
+                });
+            }
         } else {
             resultPreview.innerHTML = `
                 <div class="preview-placeholder">
@@ -568,7 +599,11 @@
             const data = await response.json();
 
             if (data.status === 'tunnel' || data.status === 'redirect') {
-                triggerDownload(data.url, data.filename || audioFilename);
+                // Usa o link de áudio quando disponível (ex: YouTube via yt-dlp),
+                // evitando baixar o vídeo inteiro no lugar do MP3
+                const audioUrl = data.audio || data.url;
+                const audioName = data.audioFilename || data.filename || audioFilename;
+                triggerDownload(audioUrl, audioName);
             } else if (data.url) {
                 triggerDownload(data.url, audioFilename);
             } else if (data.status === 'error') {
@@ -589,6 +624,7 @@
         const lower = url.toLowerCase();
         if (lower.includes('instagram')) return 'Instagram';
         if (lower.includes('facebook') || lower.includes('fb.')) return 'Facebook';
+        if (lower.includes('youtube') || lower.includes('youtu.be')) return 'YouTube';
         if (lower.includes('tiktok')) return 'TikTok';
         return 'Video';
     }

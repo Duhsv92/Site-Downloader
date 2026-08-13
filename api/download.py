@@ -2,7 +2,18 @@ import os
 # type: ignore # pyrefly: ignore [missing-import]
 import requests
 # type: ignore # pyrefly: ignore [missing-import]
-from flask import Flask, jsonify, request
+import shutil
+from flask import Flask, jsonify, request, send_file
+
+# Módulo de download do YouTube via yt-dlp
+from ytdlp import (
+    build_youtube_result,
+    decode_url,
+    download_to_temp,
+    is_youtube_url,
+    map_ytdlp_error,
+    schedule_cleanup,
+)
 
 try:
     # type: ignore # pyrefly: ignore [missing-import]
@@ -38,6 +49,8 @@ ALLOWED_DOMAINS = (
     "fb.watch",
     "fb.com",
     "m.facebook.com",
+    "youtube.com",
+    "youtu.be",
     "tiktok.com",
     "vm.tiktok.com",
 )
@@ -89,6 +102,24 @@ def api_download():
         }), 400
 
     url = body["url"].strip()
+
+    # ========================================================
+    # YOUTUBE -> yt-dlp (novo método de download)
+    # ========================================================
+    if is_youtube_url(url):
+        try:
+            return jsonify(
+                build_youtube_result(url, body.get("videoQuality", "1080"))
+            ), 200
+        except Exception as exc:
+            return jsonify({
+                "status": "error",
+                "error": {"code": map_ytdlp_error(exc)}
+            }), 400
+
+    # ========================================================
+    # DEMAIS PLATAFORMAS -> API Cobalt (fluxo original)
+    # ========================================================
 
     # Validação da URL
     if not url or not is_allowed_url(url):
@@ -190,6 +221,53 @@ def api_download():
         }), 502
 
     return jsonify(data), response.status_code
+
+
+# ============================================================
+# DOWNLOAD YOUTUBE VIA YT-DLP (stream do arquivo final)
+# ============================================================
+
+@app.route("/api/yt-dlp/download", methods=["GET"])
+def ytdlp_download():
+    token = request.args.get("q", "")
+    mode = request.args.get("m", "video")
+    quality = request.args.get("qty", "1080")
+
+    try:
+        url = decode_url(token)
+    except Exception:
+        return jsonify({
+            "status": "error",
+            "error": {"code": "error.api.link.invalid"}
+        }), 400
+
+    if not is_youtube_url(url):
+        return jsonify({
+            "status": "error",
+            "error": {"code": "error.api.link.invalid"}
+        }), 400
+
+    try:
+        filepath, filename, tmpdir = download_to_temp(url, mode, quality)
+    except Exception as exc:
+        return jsonify({
+            "status": "error",
+            "error": {"code": map_ytdlp_error(exc)}
+        }), 400
+
+    response = send_file(
+        filepath,
+        as_attachment=True,
+        download_name=filename,
+        conditional=True,
+    )
+
+    # Remove o arquivo temporário após o término do envio ao cliente
+    response.call_on_close(
+        lambda: shutil.rmtree(tmpdir, ignore_errors=True)
+    )
+    schedule_cleanup(tmpdir)
+    return response
 
 
 # ============================================================

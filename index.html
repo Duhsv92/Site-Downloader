@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaveClip — Baixe Vídeos do Instagram, Facebook e TikTok</title>
+    <title>SaveClip — Baixe Vídeos do Instagram, Facebook, Youtube e TikTok</title>
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" href="favicon.png">
@@ -63,7 +63,7 @@
                 <span class="gradient-text">rede social</span>
             </h1>
             <p class="hero-subtitle" id="hero-subtitle">
-                Cole o link do vídeo do Instagram, Facebook ou TikTok e baixe em segundos. Simples, rápido e gratuito.
+                Cole o link do vídeo do Instagram, Facebook, Youtube ou TikTok e baixe em segundos. Simples, rápido e gratuito.
             </p>
 
             <!-- Platform Selector -->
@@ -81,6 +81,13 @@
                             d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
                     Facebook
+                </button>
+                <button class="platform-btn" data-platform="youtube" id="btn-youtube">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="platform-icon">
+                        <path
+                            d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                    </svg>
+                    YouTube
                 </button>
                 <button class="platform-btn" data-platform="tiktok" id="btn-tiktok">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="platform-icon">
@@ -213,6 +220,22 @@
                         <li>✓ Áudio original</li>
                     </ul>
                 </div>
+
+                <div class="platform-card" id="card-youtube">
+                    <div class="platform-card-icon youtube-gradient">
+                        <svg viewBox="0 0 24 24" fill="white">
+                            <path
+                                d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                        </svg>
+                    </div>
+                    <h3>YouTube</h3>
+                    <p>Baixe vídeos do YouTube em até 4K, incluindo Shorts. Sem marca d'água e com opção de MP3.</p>
+                    <ul class="feature-list">
+                        <li>✓ Vídeos e Shorts</li>
+                        <li>✓ Qualidade até 4K</li>
+                        <li>✓ Áudio MP3 320kbps</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </section>
@@ -235,7 +258,7 @@
                         </svg>
                     </div>
                     <h3>Copie o Link</h3>
-                    <p>Abra o Instagram, Facebook ou TikTok e copie o link do vídeo que deseja baixar.</p>
+                    <p>Abra o Instagram, Facebook, YouTube ou TikTok e copie o link do vídeo que deseja baixar.</p>
                 </div>
 
                 <div class="step-connector">
@@ -305,7 +328,7 @@
                     <div class="stat-label">Usuários Ativos</div>
                 </div>
                 <div class="stat-card" id="stat-platforms">
-                    <div class="stat-number" data-count="3">0</div>
+                    <div class="stat-number" data-count="4">0</div>
                     <div class="stat-label">Plataformas</div>
                 </div>
                 <div class="stat-card" id="stat-uptime">
@@ -433,17 +456,17 @@
                     <a href="#" id="footer-ig">Instagram Downloader</a>
                     <a href="#" id="footer-fb">Facebook Downloader</a>
                     <a href="#" id="footer-tt">TikTok Downloader</a>
+                    <a href="#" id="footer-yt">YouTube Downloader</a>
                 </div>
                 <div class="footer-links-group">
                     <h4>Suporte</h4>
                     <a href="#faq" id="footer-faq">FAQ</a>
-                    <a href="mailto:eduardosilva.dev@gmail.com" id="footer-contact">Contato</a>
+                    <a href="#" id="footer-contact">Contato</a>
                     <a href="#" id="footer-privacy">Privacidade</a>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 SaveClip. Todos os direitos reservados.
-                    Site Desenvolvido por &copy; Eduardo Silva</p>
+                <p>&copy; 2026 SaveClip. Todos os direitos reservados.</p>
             </div>
         </div>
     </footer>

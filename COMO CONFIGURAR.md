@@ -1,10 +1,12 @@
 # 🚀 Guia Completo: Como Configurar e Rodar o SaveClip
 
-O **SaveClip** é uma aplicação completa para baixar vídeos e extrair áudio em MP3 do **Instagram, Facebook e TikTok**.
+O **SaveClip** é uma aplicação completa para baixar vídeos e extrair áudio em MP3 do **Instagram, Facebook, YouTube e TikTok**.
 
 A aplicação é dividida em duas partes para garantir total segurança:
-1. **Instância da API Cobalt** (hospedada no Railway, Render ou VPS, responsável por processar as mídias).
+1. **Instância da API Cobalt** (hospedada no Railway, Render ou VPS, responsável por processar as mídias do Instagram, Facebook e TikTok).
 2. **Servidor / Serverless SaveClip** (`server.py` ou `api/download.py`), que intercepta as chamadas do front-end e **esconde o endereço da sua API e chaves privadas** de todos os visitantes do site.
+
+> ▶️ **YouTube é baixado via `yt-dlp`** (não usa mais a Cobalt): o servidor extrai os metadados e baixa o vídeo (MP4) ou áudio (MP3) diretamente, com qualidade até 1080p (padrão) ou superior, usando o **ffmpeg** para mesclar vídeo+áudio e converter para MP3. Veja a seção 4.
 
 ---
 
@@ -38,9 +40,11 @@ A aplicação é dividida em duas partes para garantir total segurança:
 
 ---
 
-## 🌐 2. Deploy no GitHub + Vercel (Recomendado)
+## 🌐 2. Deploy no GitHub + Vercel (para Instagram, Facebook e TikTok)
 
 O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/vercel.json) e funções Serverless Python em [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py).
+
+> ⚠️ **Atenção (YouTube):** na Vercel, os downloads de **vídeo do YouTube** funcionam apenas em qualidade reduzida (sem o ffmpeg no runtime serverless, o yt-dlp baixa somente formatos progressivos) e o **áudio MP3 não funciona** (o ffmpeg é obrigatório para extrair MP3). Para ter o YouTube 100% funcional em produção, use o **deploy do servidor completo** (seção 6) em vez da Vercel, ou use a Vercel apenas para as demais plataformas via Cobalt.
 
 ### Passo a passo para publicação:
 
@@ -84,6 +88,16 @@ Se no futuro você alterar sua instância do Railway ou precisar atualizar o lin
 - 🎬 **Prévia em Player de Vídeo:** Exibe a capa/thumbnail e leitor de vídeo direto na caixa de resultado.
 - 📥 **Download Direto para o Dispositivo:** Sistema por `Blob` que força o salvamento do arquivo diretamente na pasta **Downloads** do PC ou celular.
 - 🎵 **Extração de Áudio MP3 (320 kbps):** Opção para extrair e baixar apenas o áudio do vídeo na qualidade máxima (HQ 320kbps).
+- ▶️ **YouTube via yt-dlp:** O SaveClip baixa vídeos do **YouTube** (incluindo Shorts e links `youtu.be`) com **yt-dlp**, substituindo a API Cobalt para essa plataforma. Qualidade padrão **1080p** (ajustável via `videoQuality`) e áudio **MP3 320kbps**. As demais plataformas (Instagram, Facebook, TikTok) continuam usando a Cobalt.
+
+> ⚠️ **Requisito: ffmpeg** — o yt-dlp usa o ffmpeg para mesclar vídeo+áudio em MP4 e converter o áudio para MP3. Instale em qualquer plataforma:
+> - **Windows:** `winget install Gyan.FFmpeg` (ou `choco install ffmpeg`)
+> - **macOS:** `brew install ffmpeg`
+> - **Ubuntu/Debian:** `sudo apt install ffmpeg`
+>
+> Se o ffmpeg não estiver na pasta PATH, defina a variável `FFMPEG_PATH` apontando para o executável. Sem ffmpeg, o vídeo é baixado em qualidade reduzida (apenas formatos progressivos) e o MP3 fica indisponível (erro `error.api.ffmpeg.missing`).
+
+> ⚠️ **Limitações na Vercel:** as funções Serverless têm limite de tempo (10s no plano Hobby) e de tamanho de resposta (~4,5 MB), além de não garantirem o ffmpeg. Para downloads de YouTube em produção, prefira rodar o `server.py` em uma VPS/Railway (com ffmpeg instalado) em vez do deploy Vercel, ou mantenha a Vercel apenas para as demais plataformas via Cobalt.
 
 ---
 
@@ -98,9 +112,34 @@ Caso queira hospedar sua própria instância da API Cobalt:
 
 ---
 
+## 🚂 6. Deploy do Servidor Completo no Railway (Recomendado — tudo funciona)
+
+Este é o deploy **recomendado para o YouTube funcionar 100%** em produção: o servidor `server.py` serve o site E a API, com **ffmpeg** incluído na imagem Docker (mesmo comportamento do ambiente local).
+
+1. **Suba o projeto para o GitHub** (o `.env` não vai por causa do `.gitignore`).
+
+2. **Crie um novo projeto no Railway** (`railway.com` → **New Project** → **Deploy from GitHub repo**).
+
+3. O Railway detecta o [railway.json](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/railway.json) e o [Dockerfile](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/Dockerfile) automaticamente (imagem `python:3.12-slim` + `ffmpeg` instalado).
+
+4. **Configure as variáveis de ambiente** (Settings → Variables):
+   ```env
+   COBALT_API_URL=https://api-production-664d8.up.railway.app
+   PORT=8080
+   ```
+
+5. **Gere o domínio público**: Settings → Networking → **Generate Domain**.
+
+6. Pronto! O site fica disponível em `https://seu-app.up.railway.app` com **todas** as plataformas funcionando: Instagram, Facebook, TikTok (via Cobalt) e YouTube em alta qualidade + MP3 320kbps (via yt-dlp + ffmpeg).
+
+> 💡 O mesmo `Dockerfile` também funciona no **Render** (Web Service → Docker) ou em qualquer **VPS** com Docker.
+
+---
+
 ## 📖 Links Úteis
 
 - 📦 [Repositório Oficial do Cobalt](https://github.com/imputnet/cobalt)
+- 🎞️ [yt-dlp](https://github.com/yt-dlp/yt-dlp) — downloader de vídeo usado para o YouTube
 - 🚂 [Templates do Railway](https://railway.com/templates)
 - 📖 [Documentação da API Cobalt](https://github.com/imputnet/cobalt/blob/main/docs/api.md)
 
