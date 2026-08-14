@@ -10,6 +10,9 @@ env/
 .env.local
 .env.production
 
+# Cookies do YouTube (segredo — nunca subir para o GitHub)
+cookies.txt
+
 # Vercel
 .vercel/
 

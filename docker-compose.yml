@@ -21,3 +21,12 @@ services:
     env_file:
       # Lê as variáveis do arquivo .env criado na VM (COBALT_API_URL, PORT...)
       - .env
+    environment:
+      # Caminho do arquivo de cookies do YouTube DENTRO do container.
+      # Para preencher: exporte os cookies do navegador logado no YouTube
+      # (extensão "Get cookies.txt LOCALLY") e salve como ./cookies.txt na VM.
+      - YTDLP_COOKIES=/app/cookies.txt
+    volumes:
+      # Monta o cookies.txt da VM dentro do container (leitura apenas).
+      # IMPORTANTE: crie o arquivo antes (pode ser vazio): touch cookies.txt
+      - ./cookies.txt:/app/cookies.txt:ro

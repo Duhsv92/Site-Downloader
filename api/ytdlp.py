@@ -100,6 +100,15 @@ def _base_opts():
             }
         },
     }
+
+    # Cookies opcionais do YouTube — contorna o "Sign in to confirm you're not a
+    # bot" em IPs de datacenter (VPS/Railway) para vídeos bloqueados seletivamente.
+    # Defina a variável YTDLP_COOKIES com o caminho do arquivo cookies.txt DENTRO
+    # do container (ex: /app/cookies.txt, montado pelo docker-compose).
+    cookies_file = os.environ.get("YTDLP_COOKIES")
+    if cookies_file and os.path.exists(cookies_file):
+        opts["cookies"] = cookies_file
+
     ff = _ffmpeg_location()
     if ff:
         opts["ffmpeg_location"] = ff
