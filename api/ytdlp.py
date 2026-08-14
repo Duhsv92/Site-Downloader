@@ -25,6 +25,24 @@ DEFAULT_QUALITY = 1080
 VIDEO_EXT = "mp4"
 AUDIO_EXT = "mp3"
 
+# ============================================================
+# Retry contra o bloqueio do YouTube em IPs de datacenter
+# ("Sign in to confirm you're not a bot"). O bloqueio é intermitente:
+# repetir com player clients diferentes aumenta muito a chance de sucesso.
+# ============================================================
+MAX_RETRIES = 4
+RETRY_BACKOFF = 3  # segundos entre tentativas (aumenta progressivamente)
+
+# Ordem de rotação dos player clients nas tentativas. A tentativa 0 mantém o
+# comportamento atual; nas seguintes, tenta o "web" (melhor com cookies de uma
+# conta logada) e outros fallbacks.
+RETRY_CLIENTS = [
+    ["tv", "android", "ios", "web_safari"],  # tentativa 0 (padrão atual)
+    ["web"],                                  # tentativa 1 (com cookies)
+    ["android", "ios"],                       # tentativa 2
+    ["tv_embedded", "web_safari", "mweb"],    # tentativa 3
+]
+
 
 def is_youtube_url(url):
     """Verifica se a URL pertence ao YouTube."""
@@ -115,14 +133,53 @@ def _base_opts():
     return opts
 
 
+def _is_bot_check(exc):
+    """True se o erro do yt-dlp é o bloqueio do YouTube que justifica retry."""
+    msg = (str(exc) or "").lower()
+    return "sign in" in msg or "not a bot" in msg
+
+
+def _rotate_clients(opts, attempt):
+    """Troca o player_client do YouTube a cada tentativa de retry."""
+    if attempt == 0:
+        return opts
+    extractor = opts.setdefault("extractor_args", {})
+    youtube = extractor.setdefault("youtube", {})
+    youtube["player_client"] = RETRY_CLIENTS[attempt % len(RETRY_CLIENTS)]
+    return opts
+
+
+def _run_with_retry(func):
+    """Executa func(tentativa) até MAX_RETRIES vezes quando o YouTube bloqueia
+    o IP (intermitente). Retorna o primeiro resultado bem-sucedido ou relança
+    o último erro."""
+    last_exc = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            return func(attempt)
+        except Exception as exc:
+            last_exc = exc
+            if not _is_bot_check(exc):
+                raise
+            time.sleep(RETRY_BACKOFF * (attempt + 1))
+    raise last_exc
+
+
 # ============================================================
 # Extração de metadados
 # ============================================================
 
 def extract_info(url, timeout=60):
-    """Extrai os metadados do vídeo do YouTube sem baixar o arquivo."""
-    with yt_dlp.YoutubeDL({**_base_opts(), "skip_download": True}) as ydl:
-        return ydl.extract_info(url, download=False)
+    """Extrai os metadados do vídeo do YouTube sem baixar o arquivo.
+    Com retry automático contra o bloqueio intermitente de IP de datacenter."""
+    def _run(attempt):
+        opts = _base_opts()
+        opts["skip_download"] = True
+        _rotate_clients(opts, attempt)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=False)
+
+    return _run_with_retry(_run)
 
 
 def _sanitize(name):
@@ -234,8 +291,12 @@ def _download_video(url, tmpdir, quality):
         # Sem ffmpeg: apenas formatos progressivos (qualidade mais baixa)
         opts["format"] = "best[ext=mp4]/best"
 
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    def _run(attempt):
+        _rotate_clients(opts, attempt)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=True)
+
+    info = _run_with_retry(_run)
 
     title = _sanitize((info or {}).get("title") or "youtube_video")
 
@@ -269,8 +330,12 @@ def _download_audio(url, tmpdir):
         }],
     }
 
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    def _run(attempt):
+        _rotate_clients(opts, attempt)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=True)
+
+    info = _run_with_retry(_run)
 
     title = _sanitize((info or {}).get("title") or "youtube_video")
 
