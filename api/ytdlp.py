@@ -28,19 +28,19 @@ AUDIO_EXT = "mp3"
 # ============================================================
 # Retry contra o bloqueio do YouTube em IPs de datacenter
 # ("Sign in to confirm you're not a bot"). O bloqueio é intermitente:
-# repetir com player clients diferentes aumenta muito a chance de sucesso.
+# repetir com player clients diferentes aumenta a chance de sucesso.
+# IMPORTANTE: para não atrasar o fallback Cobalt, mantemos poucas
+# tentativas com espera curta e clients enxutos (1 client por tentada
+# inicial — tentar 4 clients de uma vez dobra o tempo em vídeos bloqueados).
 # ============================================================
-MAX_RETRIES = 4
-RETRY_BACKOFF = 3  # segundos entre tentativas (aumenta progressivamente)
+MAX_RETRIES = 3
+RETRY_BACKOFF = 1  # segundos entre tentativas (1 + 2)
 
-# Ordem de rotação dos player clients nas tentativas. A tentativa 0 mantém o
-# comportamento atual; nas seguintes, tenta o "web" (melhor com cookies de uma
-# conta logada) e outros fallbacks.
-RETRY_CLIENTS = [
-    ["tv", "android", "ios", "web_safari"],  # tentativa 0 (padrão atual)
-    ["web"],                                  # tentativa 1 (com cookies)
-    ["android", "ios"],                       # tentativa 2
-    ["tv_embedded", "web_safari", "mweb"],    # tentativa 3
+# Clients das tentativas seguintes (a tentativa 0 usa um client único
+# "esperto": web se houver cookies, senão tv).
+FALLBACK_CLIENTS = [
+    ["tv", "android"],        # tentativa 1
+    ["ios", "web_safari"],    # tentativa 2
 ]
 
 
@@ -100,21 +100,29 @@ def _ffmpeg_location():
     return ff
 
 
+def _default_player_client():
+    """Client da primeira tentativa (o mais provável de funcionar rápido):
+    \"web\" se houver cookies (sessão logada), senão \"tv\" (confiável sem login).
+    Tentar vários clients de uma vez só atrasa o fallback em vídeos bloqueados."""
+    cookies_file = os.environ.get("YTDLP_COOKIES")
+    if cookies_file and os.path.exists(cookies_file):
+        return ["web"]
+    return ["tv"]
+
+
 def _base_opts():
     opts = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
-        "socket_timeout": 30,
-        "retries": 3,
+        # Timeouts menores fazem o bloqueio do YouTube falhar rápido,
+        # acelerando o fallback Cobalt.
+        "socket_timeout": 15,
+        "retries": 1,
         "no_color": True,
-        # Contorna o bloqueio "Sign in to confirm you're not a bot" do YouTube,
-        # muito comum em IPs de datacenter (Railway, VPS, etc). Tenta vários
-        # player clients (tv/android/ios) que são menos marcados como bot do
-        # que o player "web" padrão.
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv", "android", "ios", "web_safari"]
+                "player_client": _default_player_client()
             }
         },
     }
@@ -140,12 +148,14 @@ def _is_bot_check(exc):
 
 
 def _rotate_clients(opts, attempt):
-    """Troca o player_client do YouTube a cada tentativa de retry."""
+    """Troca o player_client do YouTube a cada tentativa de retry.
+    A tentativa 0 usa o client único esperto (definido em _base_opts);
+    as seguintes rotacionam os fallbacks."""
     if attempt == 0:
         return opts
     extractor = opts.setdefault("extractor_args", {})
     youtube = extractor.setdefault("youtube", {})
-    youtube["player_client"] = RETRY_CLIENTS[attempt % len(RETRY_CLIENTS)]
+    youtube["player_client"] = FALLBACK_CLIENTS[(attempt - 1) % len(FALLBACK_CLIENTS)]
     return opts
 
 
