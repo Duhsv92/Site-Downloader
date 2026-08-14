@@ -1,1 +1,1 @@
-tentando fazer um site de downloads de redes social, falta implementar a api
+um site de downloads de vídeos e áudios de redes sociais 
