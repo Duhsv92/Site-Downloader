@@ -3,12 +3,12 @@
 O **SaveClip** é uma aplicação completa para baixar vídeos e extrair áudio em MP3 do **Instagram, Facebook, YouTube e TikTok**.
 
 A aplicação é dividida em duas partes para garantir total segurança:
-1. **Instância da API Cobalt** (hospedada no Railway, Render ou VPS, responsável por processar as mídias do Instagram, Facebook e TikTok).
-2. **Servidor / Serverless SaveClip** (`server.py` ou `api/download.py`), que intercepta as chamadas do front-end e **esconde o endereço da sua API e chaves privadas** de todos os visitantes do site.
+1. **Instância da API Cobalt** (hospedada no **Railway**, responsável por processar as mídias do Instagram, Facebook e TikTok — e como *fallback* do YouTube).
+2. **Servidor SaveClip** (`server.py` + `Dockerfile`), rodando na **VM da Oracle Cloud** (Docker), que serve o site e **esconde o endereço da sua API e chaves privadas** de todos os visitantes.
 
-> ▶️ **YouTube é baixado via `yt-dlp`** (não usa mais a Cobalt): o servidor extrai os metadados e baixa o vídeo (MP4) ou áudio (MP3) diretamente, com qualidade até 1080p (padrão) ou superior, usando o **ffmpeg** para mesclar vídeo+áudio e converter para MP3. Veja a seção 4.
+> ▶️ **YouTube é baixado via `yt-dlp`** (não usa mais a Cobalt por padrão): o servidor extrai os metadados e baixa o vídeo (MP4) ou áudio (MP3) diretamente, com qualidade até 1080p (padrão) ou superior, usando o **ffmpeg** para mesclar vídeo+áudio e converter para MP3. Se o YouTube bloquear o IP da VM (datacenter), o sistema **cai automaticamente na API Cobalt** como fallback. Veja a seção 4 e o guia [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md).
 
-> ✅ **Status atual (13/08/2026):** o SaveClip está **no ar e funcional** em **https://cobalt-tools-complete-setup-production.up.railway.app** — deploy feito via **Railway CLI** no projeto existente **"Cobalt Tools - Complete Setup"**, com YouTube (MP4 1080p + MP3 320kbps), Instagram, Facebook e TikTok funcionando. Veja a **seção 6** para o processo completo e como atualizar o site.
+> ✅ **Status atual (14/08/2026):** o SaveClip está **no ar e funcional** em **http://147.15.122.54** (VM da Oracle Cloud, Docker), com YouTube (MP4 1080p + MP3 320kbps via yt-dlp + fallback Cobalt), Instagram, Facebook e TikTok funcionando. O **Railway ficou apenas com a API Cobalt** (`api-production-664d8.up.railway.app`). Para o deploy na VM e como atualizar o site, veja o guia [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md).
 
 ---
 
@@ -84,6 +84,7 @@ O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/E
 Se no futuro você alterar sua instância do Railway ou precisar atualizar o link/chave da API, você pode alterar em alguns locais simples:
 
 - **Localmente:** Altere a linha `COBALT_API_URL` no arquivo [.env](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/.env).
+- **Na VM da Oracle (produção):** edite o arquivo `~/Site-Downloader/.env` na VM e reinicie o app com `cd ~/Site-Downloader && docker compose restart`.
 - **Na Vercel:** Atualize o valor em **Settings → Environment Variables** no painel da Vercel.
 - **No Railway:** Atualize o valor em **Settings → Variables** do serviço no painel do Railway, ou pelo CLI:
   ```bash
@@ -108,7 +109,7 @@ Se no futuro você alterar sua instância do Railway ou precisar atualizar o lin
 >
 > Se o ffmpeg não estiver na pasta PATH, defina a variável `FFMPEG_PATH` apontando para o executável. Sem ffmpeg, o vídeo é baixado em qualidade reduzida (apenas formatos progressivos) e o MP3 fica indisponível (erro `error.api.ffmpeg.missing`).
 
-> 🔧 **Bloqueio do YouTube ("Sign in to confirm you're not a bot"):** em IPs de datacenter (Railway, VPS etc.) o YouTube costuma bloquear o player padrão (`web`). O projeto já contorna isso usando **player clients alternativos** (`tv`, `android`, `ios`, `web_safari`), configurados no `_base_opts()` de [api/ytdlp.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/ytdlp.py). Se o erro `error.api.youtube.login` aparecer, é sinal de bloqueio — verifique os logs (`railway logs`).
+> 🔧 **Bloqueio do YouTube ("Sign in to confirm you're not a bot"):** em IPs de datacenter (VPS/Railway) o YouTube bloqueia seletivamente alguns vídeos (principalmente música). O projeto lida com isso em **3 camadas automáticas**: (1) **player clients alternativos** (`tv`, `android`, `ios`, `web_safari`) no `_base_opts()` de [api/ytdlp.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/ytdlp.py); (2) **retry automático com rotação de clients** (`_run_with_retry`, até 4 tentativas); (3) **fallback automático para a API Cobalt** no [server.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/server.py) (`_cobalt_request`) quando o erro `error.api.youtube.login` persiste. Para melhorar ainda mais a taxa de sucesso do yt-dlp, coloque um `cookies.txt` (exportado do navegador logado no YouTube) na VM — ele é montado no container via `YTDLP_COOKIES` (veja [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md), seção 11).
 
 > ⚠️ **Limitações na Vercel:** as funções Serverless têm limite de tempo (10s no plano Hobby) e de tamanho de resposta (~4,5 MB), além de não garantirem o ffmpeg. Para downloads de YouTube em produção, prefira rodar o `server.py` em uma VPS/Railway (com ffmpeg instalado) em vez do deploy Vercel, ou mantenha a Vercel apenas para as demais plataformas via Cobalt.
 
@@ -125,13 +126,13 @@ Caso queira hospedar sua própria instância da API Cobalt:
 
 ---
 
-## 🚂 6. Deploy do Servidor Completo no Railway (Recomendado — tudo funciona)
+## 🚂 6. (Histórico) Deploy do Servidor Completo no Railway
 
-Este é o deploy **recomendado para o YouTube funcionar 100%** em produção: o servidor `server.py` serve o site E a API, com **ffmpeg** incluído na imagem Docker (mesmo comportamento do ambiente local).
+> ⚠️ **Este método foi substituído:** o SaveClip agora roda na **VM da Oracle Cloud** em Docker (veja [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md)). O Railway ficou **apenas com a API Cobalt**. Esta seção permanece como referência do processo via Railway CLI.
 
-> ✅ **Como está hoje:** o SaveClip está publicado em **https://cobalt-tools-complete-setup-production.up.railway.app**, no projeto **"Cobalt Tools - Complete Setup"**, usando a **Opção A** abaixo (Railway CLI, sem GitHub).
+> ✅ **Como está hoje (14/08/2026):** o SaveClip está publicado em **http://147.15.122.54** (VM da Oracle Cloud) e o Railway ficou só com a API Cobalt. O projeto **"Cobalt Tools - Complete Setup"** foi removido do Railway.
 
-### Opção A — Deploy via Railway CLI (sem GitHub) ✅ *(método usado atualmente)*
+### Opção A — Deploy via Railway CLI (sem GitHub)
 
 1. **Instale o Railway CLI** (requer Node.js):
    ```bash
@@ -202,6 +203,7 @@ Acompanhe com `railway logs`, `railway status` e `railway deployment list`.
 
 ## 📖 Links Úteis
 
+- 🐧 [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md) — passo a passo completo de deploy na VM da Oracle Cloud
 - 📦 [Repositório Oficial do Cobalt](https://github.com/imputnet/cobalt)
 - 🎞️ [yt-dlp](https://github.com/yt-dlp/yt-dlp) — downloader de vídeo usado para o YouTube
 - 🚂 [Templates do Railway](https://railway.com/templates)

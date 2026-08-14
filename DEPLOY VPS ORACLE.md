@@ -1,6 +1,6 @@
 # 🚀 Passo a Passo: Deploy do SaveClip na sua VM da Oracle
 
-> **Objetivo:** publicar o **SaveClip** (Site Downloader) na sua VM da Oracle Cloud, de forma que o site fique acessível pela internet em `http://147.15.122.54`, com tudo funcionando: **YouTube (MP4/MP3 via yt-dlp + ffmpeg)** e **Instagram / Facebook / TikTok (via API Cobalt)**.
+> **Objetivo:** publicar o **SaveClip** (Site Downloader) na sua VM da Oracle Cloud, de forma que o site fique acessível pela internet em `http://147.15.122.54`, com tudo funcionando: **YouTube (MP4/MP3 via yt-dlp + ffmpeg, com fallback automático para a API Cobalt)** e **Instagram / Facebook / TikTok (via API Cobalt)**.
 
 **Sua VM (verificada na prática em 13/08/2026):**
 
@@ -21,7 +21,8 @@
 4. Como rodar o app dentro de um container
 5. Como abrir as portas no firewall da Oracle **(a parte que mais dá dor de cabeça)**
 6. Como atualizar o site depois de mexer no código
-7. (Bônus) HTTPS grátis com Caddy
+7. YouTube bloqueado pela VM: cookies e fallback Cobalt
+8. (Bônus) HTTPS grátis com Caddy
 
 ---
 
@@ -42,6 +43,7 @@ Navegador do usuário
   Flask server.py ouvindo em 0.0.0.0:8080   (dentro do container)
         │
         ├── URL do YouTube  ──►  yt-dlp + ffmpeg (baixa direto na VM)
+        │                        └─ se o YouTube bloquear → API Cobalt (fallback)
         └── IG/Facebook/TikTok ─►  API Cobalt (COBALT_API_URL)
 ```
 
@@ -189,8 +191,10 @@ COBALT_API_URL=https://api-production-664d8.up.railway.app
 PORT=8080
 ```
 
-- `COBALT_API_URL` → sua instância Cobalt (processa Instagram, Facebook e TikTok). O YouTube não depende dela (usa o yt-dlp local).
+- `COBALT_API_URL` → sua instância Cobalt (processa Instagram, Facebook e TikTok). O YouTube não depende dela (usa o yt-dlp local), mas ela é usada como **fallback** quando o YouTube bloqueia a VM.
 - `PORT=8080` → porta **dentro do container**. Não mude se usar o `docker-compose.yml` da seção 7 (o mapeamento de portas depende dela).
+
+> 🍪 **Cookies do YouTube (opcional):** se quiser reduzir o bloqueio do YouTube, coloque um arquivo `cookies.txt` (exportado do navegador logado) na pasta do projeto. O `docker-compose.yml` já monta ele no container (variável `YTDLP_COOKIES`) — veja a seção 11.
 
 > 📚 **Aprenda:** o `.env` é a configuração "viva" da aplicação. O `server.py` lê as variáveis com `os.environ.get(...)` no momento em que inicia. Por isso, **se você mudar o `.env`, precisa reiniciar o container** (`docker compose restart`).
 
@@ -248,6 +252,10 @@ services:
       - "8080:8080"           # extra, para teste direto na porta 8080
     env_file:
       - .env                  # lê as variáveis do arquivo .env
+    environment:
+      - YTDLP_COOKIES=/app/cookies.txt   # cookies do YouTube (opcional, seção 11)
+    volumes:
+      - ./cookies.txt:/app/cookies.txt:ro   # monta o cookies.txt da VM
 ```
 
 **Suba com um único comando:**
@@ -340,7 +348,43 @@ Pronto. O Compose detecta que o código mudou, reconstrói a imagem e recria o c
 
 ---
 
-## 11. (Bônus) HTTPS grátis com Caddy
+## 11. (Importante) YouTube bloqueado pela VM — cookies e fallback Cobalt
+
+**Sintoma:** alguns vídeos do YouTube (principalmente música) falham com **"Erro na API (HTTP 400)"**. Nos logs do container aparece:
+
+```
+ERROR: [youtube] <ID>: Sign in to confirm you're not a bot.
+Use --cookies-from-browser or --cookies for the authentication.
+```
+
+**Causa:** o YouTube bloqueia seletivamente vídeos para **IPs de datacenter** (como o da Oracle). Não existe player client que contorne isso sozinho — é bloqueio por reputação de IP.
+
+**O que o projeto já faz (automático, sem ação sua):**
+
+1. Tenta vários **player clients** (`tv`, `android`, `ios`, `web_safari`).
+2. Se bloquear, faz **retry automático** rotacionando os clients (até 4 tentativas, com espera progressiva).
+3. Se ainda falhar, **fallback automático para a API Cobalt** (`server.py` → `_cobalt_request`) — o IP do Railway normalmente passa nesse bloqueio e o download continua (qualidade 720p).
+
+**Como melhorar o yt-dlp direto (opcional): cookies de uma conta logada**
+
+1. Instale a extensão **"Get cookies.txt LOCALLY"** no navegador.
+2. Acesse **youtube.com** logado e clique no ícone da extensão → **Export**.
+3. Envie o arquivo para a VM (PowerShell):
+   ```powershell
+   scp -i C:\Users\Eduardo\Downloads\ssh-key-2026-08-13.key C:\Users\Eduardo\Downloads\cookies.txt ubuntu@147.15.122.54:~/Site-Downloader/cookies.txt
+   ```
+4. Reinicie o container:
+   ```bash
+   cd ~/Site-Downloader && docker compose restart
+   ```
+
+O arquivo é montado em `/app/cookies.txt` (variável `YTDLP_COOKIES` no `docker-compose.yml`) e **nunca vai para o GitHub** (está no `.gitignore`). Os cookies **expirem** — quando o erro voltar, re-exporte e repita os passos 3 e 4.
+
+> 💡 **Resumo da estratégia:** o **yt-dlp direto** entrega 1080p/MP3 320kbps quando o YouTube libera; o **fallback Cobalt** garante que nenhum vídeo fique sem download; os **cookies** aumentam a chance do caminho de melhor qualidade.
+
+---
+
+## 12. (Bônus) HTTPS grátis com Caddy
 
 Com o site em `http://IP`, dá para ter **HTTPS grátis** com o **Caddy** — ele emite e renova o certificado automaticamente. Pré-requisito: um domínio apontando para `147.15.122.54` (registro `A` no seu provedor de domínio).
 
@@ -371,7 +415,7 @@ Em ~1 minuto seu site estará em **https://seu-dominio.com** ✅
 
 ---
 
-## 12. Troubleshooting (erros comuns)
+## 13. Troubleshooting (erros comuns)
 
 | Sintoma | Causa provável | Solução |
 |---|---|---|
@@ -380,7 +424,7 @@ Em ~1 minuto seu site estará em **https://seu-dominio.com** ✅
 | `Please login as the user "ubuntu"` | Usou `opc` | Usar `ubuntu@147.15.122.54` |
 | `docker: command not found` | Docker não instalado | Seção 4 (e faça `exit` + reconectar) |
 | `Cannot connect to the Docker daemon` | Usuário sem permissão | `sudo usermod -aG docker $USER` + reconectar |
-| Site abre, mas YouTube dá `error.api.youtube.login` | YouTube bloqueando IP de datacenter | O projeto já contorna com players alternativos (`api/ytdlp.py`); confira os logs |
+| Site abre, mas YouTube dá `error.api.youtube.login` | YouTube bloqueando IP de datacenter | Já há **retry + fallback Cobalt** automáticos (seção 11); opcional: adicionar `cookies.txt` para melhorar a qualidade (1080p) |
 | `error.api.ffmpeg.missing` | Imagem antiga sem ffmpeg | `docker compose build --no-cache` |
 | `error.api.timeout` / Instagram não baixa | Instância Cobalt fora do ar | Teste com `curl -s https://api-production-664d8.up.railway.app` na VM |
 | Porta 80 já em uso | Outro serviço na porta 80 | `sudo ss -tulpn \| grep :80` |
@@ -393,7 +437,7 @@ docker logs --tail 50 saveclip
 
 ---
 
-## 13. Comandos e dicas úteis de manutenção
+## 14. Comandos e dicas úteis de manutenção
 
 ```bash
 docker compose ps                  # estado dos containers
