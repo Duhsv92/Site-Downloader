@@ -361,8 +361,8 @@ Use --cookies-from-browser or --cookies for the authentication.
 
 **O que o projeto já faz (automático, sem ação sua):**
 
-1. Tenta vários **player clients** (`tv`, `android`, `ios`, `web_safari`).
-2. Se bloquear, faz **retry automático** rotacionando os clients (até 4 tentativas, com espera progressiva).
+1. Tenta **player clients** confiáveis (`tv`/`android`).
+2. Se bloquear, faz **retry automático** rotacionando os clients (até 3 tentativas, com espera curta — o fallback entra em ~10-15s).
 3. Se ainda falhar, **fallback automático para a API Cobalt** (`server.py` → `_cobalt_request`) — o IP do Railway normalmente passa nesse bloqueio e o download continua (qualidade 720p).
 
 **Como melhorar o yt-dlp direto (opcional): cookies de uma conta logada**
