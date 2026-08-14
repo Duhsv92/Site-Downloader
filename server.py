@@ -73,6 +73,39 @@ def is_allowed_url(url):
     return any(domain in lower for domain in ALLOWED_DOMAINS)
 
 
+def _cobalt_request(url, body):
+    """Chama a API Cobalt (Instagram/Facebook/TikTok e fallback do YouTube).
+
+    Retorna (data_json, status_code). Lança requests.Timeout, requests.RequestException
+    ou ValueError em caso de falha."""
+    payload = {
+        "url": url,
+        "videoQuality": body.get("videoQuality", "1080"),
+        "filenameStyle": body.get("filenameStyle", "pretty"),
+        "downloadMode": body.get("downloadMode", "auto"),
+        "audioFormat": body.get("audioFormat", "mp3"),
+        "audioBitrate": body.get("audioBitrate", "320"),
+    }
+
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    if COBALT_API_KEY:
+        headers["Authorization"] = f"Bearer {COBALT_API_KEY}"
+
+    response = requests.post(
+        COBALT_API_URL,
+        json=payload,
+        headers=headers,
+        timeout=60
+    )
+
+    data = response.json()
+    return data, response.status_code
+
+
 @app.route("/")
 def serve_index():
     return send_from_directory(".", "index.html")
@@ -116,11 +149,24 @@ def api_download():
                 build_youtube_result(url, body.get("videoQuality", "1080"))
             ), 200
         except Exception as exc:
-            # Log do erro real para diagnóstico nos logs do Railway
+            err_code = map_ytdlp_error(exc)
+            # Log do erro real para diagnóstico nos logs
             print(f"[yt-dlp/metadata] ERRO: {exc}", flush=True)
+
+            # Fallback automático: quando o YouTube bloqueia o IP de datacenter
+            # da VM ("Sign in to confirm you're not a bot"), tenta a API Cobalt
+            # (hospedada no Railway, que costuma passar nesse bloqueio).
+            if err_code == "error.api.youtube.login" and COBALT_API_URL:
+                try:
+                    data, status = _cobalt_request(url, body)
+                    print("[cobalt-fallback] YouTube OK via Cobalt", flush=True)
+                    return jsonify(data), status
+                except Exception as exc2:
+                    print(f"[cobalt-fallback] ERRO: {exc2}", flush=True)
+
             return jsonify({
                 "status": "error",
-                "error": {"code": map_ytdlp_error(exc)}
+                "error": {"code": err_code}
             }), 400
 
     # ========================================================
@@ -135,33 +181,9 @@ def api_download():
             }
         }), 400
 
-    payload = {
-        "url": url,
-        "videoQuality": body.get("videoQuality", "1080"),
-        "filenameStyle": body.get("filenameStyle", "pretty"),
-        "downloadMode": body.get("downloadMode", "auto"),
-        "audioFormat": body.get("audioFormat", "mp3"),
-        "audioBitrate": body.get("audioBitrate", "320"),
-    }
-
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-
-    if COBALT_API_KEY:
-        headers["Authorization"] = f"Bearer {COBALT_API_KEY}"
-
     try:
-        response = requests.post(
-            COBALT_API_URL,
-            json=payload,
-            headers=headers,
-            timeout=60
-        )
-
-        data = response.json()
-        return jsonify(data), response.status_code
+        data, status = _cobalt_request(url, body)
+        return jsonify(data), status
 
     except requests.Timeout:
         return jsonify({
