@@ -36,11 +36,10 @@ AUDIO_EXT = "mp3"
 MAX_RETRIES = 3
 RETRY_BACKOFF = 1  # segundos entre tentativas (1 + 2)
 
-# Clients das tentativas seguintes (a tentativa 0 usa um client único
-# "esperto": web se houver cookies, senão tv).
+# Clients das tentativas seguintes (a tentativa 0 usa ["tv", "android"]).
 FALLBACK_CLIENTS = [
-    ["tv", "android"],        # tentativa 1
-    ["ios", "web_safari"],    # tentativa 2
+    ["android", "ios"],        # tentativa 1
+    ["web", "web_safari"],     # tentativa 2
 ]
 
 
@@ -101,13 +100,12 @@ def _ffmpeg_location():
 
 
 def _default_player_client():
-    """Client da primeira tentativa (o mais provável de funcionar rápido):
-    \"web\" se houver cookies (sessão logada), senão \"tv\" (confiável sem login).
-    Tentar vários clients de uma vez só atrasa o fallback em vídeos bloqueados."""
-    cookies_file = os.environ.get("YTDLP_COOKIES")
-    if cookies_file and os.path.exists(cookies_file):
-        return ["web"]
-    return ["tv"]
+    """Client da primeira tentativa (o mais provável de funcionar rápido).
+    Empiricamente, com cookies presentes o client \"tv\" sozinho e o \"web\"
+    retornam \"Requested format is not available\"; a combinação
+    [\"tv\", \"android\"] é confiável e falha rápido em vídeos bloqueados
+    (2 clients por tentativa, em vez de 4)."""
+    return ["tv", "android"]
 
 
 def _base_opts():
