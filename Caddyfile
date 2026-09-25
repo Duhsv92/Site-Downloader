@@ -13,8 +13,10 @@
 #
 # Pré-requisitos (seção 13 do guia):
 #   1) Porta 443 liberada na Security List da Oracle (a 80 já está desde a seção 8)
-#   2) Nada de DNS novo: a Cobalt é servida no sub-caminho /cobalt/ do próprio
-#      domínio do site (a variante com subdomínio está comentada no fim do arquivo)
+#   2) Nada de DNS novo: a API da Cobalt é servida no sub-caminho /cobalt/ do
+#      próprio domínio do site — e os links de /tunnel, que a Cobalt monta
+#      sozinha a partir da ORIGEM do API_URL, saem na RAIZ do domínio (por isso
+#      a rota "handle /tunnel*" logo abaixo). Variante com subdomínio no fim.
 #
 # Opcional: e-mail para os avisos de vencimento do certificado.
 # {

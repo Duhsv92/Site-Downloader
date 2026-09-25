@@ -2,7 +2,7 @@
 
 > **Objetivo:** publicar o **SaveClip** (Site Downloader) na sua VM da Oracle Cloud, de forma que o site fique acessível pela internet em `http://147.15.122.54`, com tudo funcionando: **YouTube (MP4/MP3 via yt-dlp + ffmpeg, com fallback automático para a API Cobalt)** e **Instagram / Facebook / TikTok (via API Cobalt)**.
 
-> ✅ **Status atual (24/09/2026):** o site está **no ar em HTTPS** — **https://saverclip.mobaily.com.br** (o `http://` redireciona sozinho) — com o **Caddy** (Let's Encrypt) na frente dos containers e a **Cobalt pública em `https://saverclip.mobaily.com.br/cobalt/`** (sub-caminho, sem DNS novo). A **porta 443 já está liberada** na Security List da Oracle. Para ativar/reverter o HTTPS, veja a **seção 13**.
+> ✅ **Status atual (24/09/2026):** o site está **no ar em HTTPS** — **https://saverclip.mobaily.com.br** (o `http://` redireciona sozinho) — com o **Caddy** (Let's Encrypt) na frente dos containers. A **Cobalt** atende a **API** em `https://saverclip.mobaily.com.br/cobalt/` (sub-caminho, sem DNS novo) e os **downloads** em `https://saverclip.mobaily.com.br/tunnel?...` (na raiz do domínio — a Cobalt usa só a origem do `API_URL`; veja 13.1). A **porta 443 já está liberada** na Security List da Oracle. Para ativar/reverter o HTTPS, veja a **seção 13**.
 
 **Sua VM (verificada na prática em 13/08/2026):**
 
