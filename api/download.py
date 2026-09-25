@@ -33,8 +33,9 @@ app = Flask(__name__)
 # ==============================================================================
 
 # Padrão usado só quando COBALT_API_URL não está definida (ex: Vercel sem a
-# variável configurada). Aponta para a instância Cobalt self-hosted da VM.
-DEFAULT_COBALT_URL = "http://saverclip.mobaily.com.br:8080"
+# variável configurada). Aponta para a instância Cobalt self-hosted da VM, já no
+# modo HTTPS (seção 13 do DEPLOY VPS ORACLE.md): sub-caminho /cobalt/ do site.
+DEFAULT_COBALT_URL = "https://saverclip.mobaily.com.br/cobalt"
 
 raw_url = os.environ.get("COBALT_API_URL", DEFAULT_COBALT_URL).strip().rstrip("/")
 if raw_url and not (raw_url.startswith("http://") or raw_url.startswith("https://")):

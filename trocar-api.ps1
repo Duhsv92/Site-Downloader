@@ -1,9 +1,10 @@
-# ============================================================
+﻿# ============================================================
 # SaveClip — trocar-api.ps1
 # Troca a URL da API Cobalt (Railway) em TODOS os pontos do projeto.
 #
 # USO (PowerShell, na raiz do projeto):
 #   .\trocar-api.ps1 -Url https://sua-api-nova.up.railway.app
+#   .\trocar-api.ps1 -Url https://saverclip.mobaily.com.br/cobalt   # Cobalt self-hosted no HTTPS (seção 13)
 #   .\trocar-api.ps1 -Url https://sua-api-nova.up.railway.app -ApiKey <uuid> -AuthScheme Api-Key
 #   .\trocar-api.ps1 -Url https://sua-api-nova.up.railway.app -DryRun   # apenas simula
 #   .\trocar-api.ps1 -Url https://sua-api-nova.up.railway.app -Check    # troca e testa a instância
@@ -46,8 +47,8 @@ $ErrorActionPreference = 'Stop'
 # ------------------------------------------------------------
 $newUrl = $Url.Trim().TrimEnd('/')
 if ($newUrl -notmatch '^https?://') { $newUrl = "https://$newUrl" }
-if ($newUrl -notmatch '^https?://[a-zA-Z0-9\.\-]+(:\d+)?$') {
-    throw "URL inválida: '$Url'. Informe algo como https://sua-api.up.railway.app"
+if ($newUrl -notmatch '^https?://[a-zA-Z0-9\.\-]+(:\d+)?(/[a-zA-Z0-9\.\-_/]*)?$') {
+    throw "URL inválida: '$Url'. Informe algo como https://sua-api.up.railway.app ou https://saverclip.mobaily.com.br/cobalt"
 }
 
 # Em regex, "$" é especial no texto de substituição -> escapamos por segurança
@@ -57,7 +58,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $targets = @('.env', 'server.py', 'api\download.py', 'COMO CONFIGURAR.md', 'DEPLOY VPS ORACLE.md')
 
 # Instância self-hosted (Cobalt rodando na própria VM da Oracle) — trocada junto
-$selfHostedPattern = 'https?://saverclip\.mobaily\.com\.br:\d+|https?://cobalt\.saverclip\.mobaily\.com\.br'   # porta 8080 (http) ou subdomínio HTTPS (seção 13)
+$selfHostedPattern = 'https?://saverclip\.mobaily\.com\.br/cobalt/?|https?://saverclip\.mobaily\.com\.br:\d+|https?://cobalt\.saverclip\.mobaily\.com\.br'   # sub-caminho HTTPS (padrão, seção 13), porta 8080 (http) ou subdomínio (variante) — nunca a URL do site
 # Qualquer domínio Railway já registrado no projeto (instância antiga ou atual)
 $railwayPattern = 'https?://[a-zA-Z0-9\-\.]+\.up\.railway\.app'
 # Valor padrão no código-fonte
@@ -166,7 +167,7 @@ if ($Check -and -not $DryRun) {
         Write-Host ("  OK — cobalt {0} | serviços: {1}" -f $info.cobalt.version, ($info.cobalt.services -join ', ')) -ForegroundColor Green
     } catch {
         Write-Host "  FALHOU: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "  Confira no Railway: porta pública 9000 + Deploy/Run logs." -ForegroundColor Yellow
+        Write-Host "  Railway: porta pública 9000 + Deploy/Run logs. Self-hosted (VM): container 'cobalt' Up e /cobalt/ respondendo pelo Caddy." -ForegroundColor Yellow
     }
 }
 

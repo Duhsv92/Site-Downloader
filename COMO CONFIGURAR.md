@@ -8,7 +8,7 @@ A aplicação é dividida em duas partes para garantir total segurança:
 
 > ▶️ **YouTube é baixado via `yt-dlp`** (não usa mais a Cobalt por padrão): o servidor extrai os metadados e baixa o vídeo (MP4) ou áudio (MP3) diretamente, com qualidade até 1080p (padrão) ou superior, usando o **ffmpeg** para mesclar vídeo+áudio e converter para MP3. Se o YouTube bloquear o IP da VM (datacenter), o sistema **cai automaticamente na API Cobalt** como fallback. Veja a seção 4 e o guia [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md).
 
-> ✅ **Status atual (24/09/2026):** o SaveClip está **no ar** em **http://saverclip.mobaily.com.br** (e em **http://147.15.122.54**), com **Cobalt self-hosted na própria VM** (porta 8080, chave de API obrigatória) — o site, o YouTube (yt-dlp) e a Cobalt agora rodam na mesma máquina, sem dependência do Railway. Como subir/atualizar: [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md), seções 10 e 11.
+> ✅ **Status atual (24/09/2026):** o SaveClip está **no ar em HTTPS** — **https://saverclip.mobaily.com.br** (o `http://` redireciona sozinho para `https://`), com o **Caddy** emitindo/renovando o certificado do Let's Encrypt, e a **Cobalt self-hosted na própria VM** publicada no sub-caminho **https://saverclip.mobaily.com.br/cobalt/** (chave de API obrigatória). O site, o YouTube (yt-dlp) e a Cobalt rodam na mesma máquina, sem dependência do Railway. Como subir/atualizar: [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md), seções 10, 11 e 13.
 
 ---
 
@@ -25,9 +25,9 @@ A aplicação é dividida em duas partes para garantir total segurança:
    copy .env.example .env   # no Linux/Mac: cp .env.example .env
    ```
 
-   Edite o arquivo `.env` e defina a URL da sua API. Se a Cobalt já está hospedada na sua VM (recomendado), use o endereço **público** dela — no seu PC não existe a rede interna do Docker:
+   Edite o arquivo `.env` e defina a URL da sua API. Se a Cobalt já está hospedada na sua VM (recomendado), use o endereço **público** dela — no seu PC não existe a rede interna do Docker (com o HTTPS ativo, ela fica no sub-caminho `/cobalt/` do próprio site):
    ```env
-   COBALT_API_URL=http://saverclip.mobaily.com.br:8080
+   COBALT_API_URL=https://saverclip.mobaily.com.br/cobalt
    COBALT_API_KEY=cole-aqui-o-uuid-do-keys.json-da-VM
    COBALT_AUTH_SCHEME=Api-Key
    PORT=8080
@@ -74,7 +74,7 @@ O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/E
 3. **Configure as Variáveis de Ambiente na Vercel:**
    - Na tela de Deploy (ou em **Settings → Environment Variables**), adicione:
      - **Key (Nome):** `COBALT_API_URL`
-     - **Value (Valor):** `http://saverclip.mobaily.com.br:8080` (instância self-hosted na sua VM)
+     - **Value (Valor):** `https://saverclip.mobaily.com.br/cobalt` (instância self-hosted na sua VM, com o HTTPS ativo — a Cobalt fica no sub-caminho `/cobalt/` do site)
      - **Key (Nome):** `COBALT_API_KEY` → **Value:** o UUID do `keys.json` da VM
      - **Key (Nome):** `COBALT_AUTH_SCHEME` → **Value:** `Api-Key`
    - Clique em **Add**.
@@ -90,14 +90,14 @@ O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/E
 Se no futuro você trocar a instância Cobalt (self-hosted ou externa) ou precisar atualizar o link/chave da API, os pontos que leem a mesma variável `COBALT_API_URL` são:
 
 - **Localmente:** Altere `COBALT_API_URL`, `COBALT_API_KEY` e `COBALT_AUTH_SCHEME` no arquivo [.env](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/.env).
-- **Na VM da Oracle (produção, Cobalt self-hosted):** o site aponta para o endereço **interno** da rede Docker — `COBALT_API_URL=http://cobalt:9000` + `COBALT_API_KEY=<uuid>`. Edite `~/Site-Downloader/.env` e rode `cd ~/Site-Downloader && docker compose restart saveclip`. A **URL pública** da Cobalt (usada nos links de `/tunnel`) está no `docker-compose.yml`, na variável `API_URL` do serviço `cobalt` — se você mudá-la, rode `docker compose up -d cobalt`.
+- **Na VM da Oracle (produção, Cobalt self-hosted):** o site aponta para o endereço **interno** da rede Docker — `COBALT_API_URL=http://cobalt:9000` + `COBALT_API_KEY=<uuid>`. Edite `~/Site-Downloader/.env` e rode `cd ~/Site-Downloader && docker compose restart saveclip`. A **URL pública** da Cobalt (usada nos links de `/tunnel`) fica na variável `API_URL` do serviço `cobalt`: no `docker-compose.yml` (modo HTTP) e/ou no `docker-compose.https.yml` (modo HTTPS — hoje o ativo, `https://saverclip.mobaily.com.br/cobalt/`); se você mudá-la, rode `docker compose up -d cobalt`.
 - **Numa instância externa (Railway/Vercel):** Atualize o valor em **Settings → Environment Variables** no painel da hospedagem e também no `.env` da VM:
   ```bash
   # exemplo: atualizar via Railway CLI
   railway variables set COBALT_API_URL=https://sua-instancia.up.railway.app
   ```
 - **No Código Python:** o valor padrão é a variável `DEFAULT_COBALT_URL`, nos arquivos [server.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/server.py) e [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py) — usada apenas quando não existe `.env`/variável de ambiente (ex: Vercel sem `COBALT_API_URL` configurada).
-- **Com HTTPS na VM (opcional):** depois de ativar o HTTPS (seção 13 do [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md)), a URL **pública** da Cobalt muda de `http://saverclip.mobaily.com.br:8080` para `https://cobalt.saverclip.mobaily.com.br` — é esse o valor a usar no `.env` do seu PC/Vercel e na `API_URL` do `docker-compose.https.yml`. Dentro da VM o site continua usando `http://cobalt:9000` (rede interna do Docker).
+- **Com HTTPS ativo (o padrão hoje):** o Caddy serve a Cobalt em **`https://saverclip.mobaily.com.br/cobalt/`** — sub-caminho do próprio domínio do site, sem registro DNS novo (veja a seção 13 do [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md)). É esse o valor a usar no `.env` do seu PC/Vercel e na `API_URL` do `docker-compose.https.yml`. Se você voltar ao modo HTTP puro (seção 13.4), a URL pública da Cobalt volta a ser `http://saverclip.mobaily.com.br:8080`. Dentro da VM o site continua usando `http://cobalt:9000` (rede interna do Docker).
 
 
 

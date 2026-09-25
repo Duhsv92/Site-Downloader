@@ -11,9 +11,10 @@
 # containers pela rede interna do Docker — o navegador só vê o domínio,
 # nunca o IP nem a porta 8080.
 #
-# Pré-requisitos (os DOIS são obrigatórios — seção 13 do guia):
-#   1) Registro DNS tipo "A" para CADA domínio abaixo apontando para 147.15.122.54
-#   2) Porta 443 liberada na Security List da Oracle (a 80 já está desde a seção 8)
+# Pré-requisitos (seção 13 do guia):
+#   1) Porta 443 liberada na Security List da Oracle (a 80 já está desde a seção 8)
+#   2) Nada de DNS novo: a Cobalt é servida no sub-caminho /cobalt/ do próprio
+#      domínio do site (a variante com subdomínio está comentada no fim do arquivo)
 #
 # Opcional: e-mail para os avisos de vencimento do certificado.
 # {
@@ -21,39 +22,48 @@
 # }
 
 # ------------------------------------------------------------
-# Site (páginas + /api/download + /api/yt-dlp/download)
+# Site (páginas + /api/download + /api/yt-dlp/download) e Cobalt
+# no sub-caminho /cobalt/ — um único domínio, sem registro DNS novo.
 # ------------------------------------------------------------
 saverclip.mobaily.com.br {
-	encode zstd gzip
-	reverse_proxy saveclip:8080
+	# /cobalt (sem a barra no fim) cairia no site e responderia 404: manda para /cobalt/
+	redir /cobalt /cobalt/ 308
+
+	# Cobalt (API interna + os links de /tunnel que o navegador abre).
+	# Precisa ser HTTPS: uma página https:// não consegue baixar de
+	# http:// (o navegador bloqueia por "mixed content").
+	#
+	# O handle_path REMOVE o prefixo antes de repassar ao container:
+	#   https://saverclip.mobaily.com.br/cobalt/            -> cobalt:9000/
+	#   https://saverclip.mobaily.com.br/cobalt/tunnel?id=1 -> cobalt:9000/tunnel?id=1
+	#
+	# Sem "encode" de propósito: esta rota entrega vídeo/áudio por
+	# streaming (Range/206) — compressão não ajuda e só atrapalha.
+	handle_path /cobalt/* {
+		reverse_proxy cobalt:9000
+	}
+
+	# Todo o resto é o site Flask (páginas, /api/download, /api/yt-dlp/...).
+	handle {
+		encode zstd gzip
+		reverse_proxy saveclip:8080
+	}
 }
 
 # ------------------------------------------------------------
-# Cobalt (API interna + links de /tunnel que o navegador abre)
-# Precisa ser HTTPS: uma página https:// não consegue baixar de
-# http:// (o navegador bloqueia por "mixed content").
-# Sem "encode" aqui de propósito: esta rota entrega vídeo/áudio
-# por streaming (Range/206) — compressão não ajuda e só atrapalha.
-# ------------------------------------------------------------
-cobalt.saverclip.mobaily.com.br {
-	reverse_proxy cobalt:9000
-}
-
-# ------------------------------------------------------------
-# ALTERNATIVA (sem subdomínio, sem mexer no DNS):
-# sirva a Cobalt num "sub-caminho" do próprio domínio do site.
-# Nesse caso troque os dois blocos acima por:
+# ALTERNATIVA (Cobalt com subdomínio próprio):
+# registre "cobalt.saverclip.mobaily.com.br" (tipo A) apontando para
+# 147.15.122.54 no painel do Registro.br e troque o bloco acima por:
 #
 # saverclip.mobaily.com.br {
 #     encode zstd gzip
-#     handle_path /cobalt/* {
-#         reverse_proxy cobalt:9000
-#     }
-#     handle {
-#         reverse_proxy saveclip:8080
-#     }
+#     reverse_proxy saveclip:8080
+# }
+#
+# cobalt.saverclip.mobaily.com.br {
+#     reverse_proxy cobalt:9000
 # }
 #
 # E no docker-compose.https.yml use:
-#     API_URL: "https://saverclip.mobaily.com.br/cobalt/"
+#     API_URL: "https://cobalt.saverclip.mobaily.com.br/"
 # ------------------------------------------------------------

@@ -2,6 +2,8 @@
 
 > **Objetivo:** publicar o **SaveClip** (Site Downloader) na sua VM da Oracle Cloud, de forma que o site fique acessível pela internet em `http://147.15.122.54`, com tudo funcionando: **YouTube (MP4/MP3 via yt-dlp + ffmpeg, com fallback automático para a API Cobalt)** e **Instagram / Facebook / TikTok (via API Cobalt)**.
 
+> ✅ **Status atual (24/09/2026):** o site está **no ar em HTTPS** — **https://saverclip.mobaily.com.br** (o `http://` redireciona sozinho) — com o **Caddy** (Let's Encrypt) na frente dos containers e a **Cobalt pública em `https://saverclip.mobaily.com.br/cobalt/`** (sub-caminho, sem DNS novo). A **porta 443 já está liberada** na Security List da Oracle. Para ativar/reverter o HTTPS, veja a **seção 13**.
+
 **Sua VM (verificada na prática em 13/08/2026):**
 
 | Item | Valor |
@@ -541,25 +543,45 @@ O arquivo é montado em `/app/cookies.txt` (variável `YTDLP_COOKIES` no `docker
 
 ## 13. HTTPS grátis com Caddy (site + Cobalt)
 
-Hoje o site responde em `http://saverclip.mobaily.com.br`. Para virar **`https://`** (com o cadeado no navegador) o projeto já vem pronto: o **Caddy** é um terceiro container que fica na frente dos outros dois, pega e renova o certificado do **Let's Encrypt** sozinho e repassa o tráfego pela rede interna do Docker. Nada de `certbot`, nada de cron.
+O site responde em **`https://saverclip.mobaily.com.br`** (o `http://` redireciona sozinho). Quem faz isso é o **Caddy**, um terceiro container que fica na frente dos outros dois: ele pega e renova o certificado do **Let's Encrypt** sozinho — nada de `certbot`, nada de cron — e repassa o tráfego pela rede interna do Docker. O modo HTTP puro continua existindo; para voltar veja **13.4**.
 
-Antes de começar, **os dois pré-requisitos abaixo são obrigatórios** — sem eles o certificado não é emitido (ou pior: o site sai do ar):
+O único pré-requisito é **um** item (feito em 24/09/2026):
 
 | # | O que fazer | Onde fazer |
 |---|---|---|
-| 1 | **Liberar a porta 443** (TCP, origem `0.0.0.0/0`). A 80 já está liberada desde a seção 8. | Console da Oracle → **Security List** (o mesmo passo a passo da seção 8, trocando 80 por 443) |
-| 2 | **Criar o DNS do subdomínio da Cobalt:** registro tipo `A` → `cobalt.saverclip.mobaily.com.br` = `147.15.122.54` | Painel do **Registro.br** (onde já existe o `saverclip`) |
+| 1 | **Liberar a porta 443** (TCP, origem `0.0.0.0/0`). A 80 já está liberada desde a seção 8. | Console da Oracle → **Security List** (mesmo passo a passo da seção 8, trocando 80 por 443) |
 
-Para conferir depois de criar o DNS (do seu PC):
+> 🔎 **Como saber se a 443 está realmente aberta:** `Connection timed out` no seu PC **não** prova que a porta está fechada — com nada escutando na 443, a VM responde com um ICMP que muitos roteadores/ISPs descartam em silêncio (some só depois que o Caddy sobe e escuta nessa porta). O teste que não mente é espiar, na própria VM, se o pacote externo chegou:
+>
+> ```bash
+> # 1) na VM: espia (só registra no log, NÃO bloqueia nada)
+> sudo iptables -I INPUT 1 -p tcp --dport 443 -m limit --limit 5/min -j LOG --log-prefix "PROBE443: "
+> # 2) no seu PC: curl.exe --max-time 8 https://saverclip.mobaily.com.br/
+> # 3) na VM: aparecendo "DPT=443" aqui, a Oracle está liberando
+> sudo journalctl -k --since "-2 min" | grep PROBE443
+> # 4) na VM: remove o espião (o firewall volta ao estado original)
+> sudo iptables -D INPUT -p tcp --dport 443 -m limit --limit 5/min -j LOG --log-prefix "PROBE443: "
+> ```
+
+Do seu PC, dá para conferir a 443 e o DNS assim:
 
 ```powershell
-Resolve-DnsName cobalt.saverclip.mobaily.com.br -Type A | Select-Object Name,IPAddress
-Test-NetConnection saverclip.mobaily.com.br -Port 443 -InformationLevel Quiet   # tem que dar True
+Test-NetConnection saverclip.mobaily.com.br -Port 443 -InformationLevel Quiet              # tem que dar True
+Resolve-DnsName saverclip.mobaily.com.br -Server 8.8.8.8 | Select-Object Name,IPAddress   # 147.15.122.54
 ```
 
-### 13.1. Por que a Cobalt precisa de um subdomínio só dela?
+### 13.1. Por que a Cobalt também precisa ser servida em HTTPS?
 
-Uma página em `https://` **não consegue** baixar um arquivo servido em `http://` — o navegador bloqueia isso como *mixed content*. E quem baixa os arquivos pesados é o **navegador do visitante**, abrindo os links de `/tunnel` gerados pela Cobalt. Ou seja: se o site é `https://`, o link de `/tunnel` **também** precisa ser `https://`. É para isso que serve o `cobalt.saverclip.mobaily.com.br` (o valor da variável `API_URL` da Cobalt).
+Uma página em `https://` **não consegue** baixar um arquivo servido em `http://` — o navegador bloqueia isso como *mixed content*. E quem baixa os arquivos pesados é o **navegador do visitante**, abrindo os links de `/tunnel` gerados pela Cobalt. Ou seja: se o site é `https://`, o link de `/tunnel` **também** precisa ser `https://`. Como a Cobalt não tem opção de "confiar no proxy", quem diz qual é a URL pública é a variável **`API_URL`** do container (`docker-compose.https.yml`).
+
+Existem duas formas de resolver — o projeto está configurado com a **primeira**:
+
+| Forma | URL pública da Cobalt | Precisa de DNS novo? |
+|---|---|---|
+| **Sub-caminho** (é a que está ativa) | `https://saverclip.mobaily.com.br/cobalt/` | **Não** — usa o domínio que já existe |
+| Subdomínio (variante comentada) | `https://cobalt.saverclip.mobaily.com.br/` | Sim: registro `A` no Registro.br + ajustar o `Caddyfile` |
+
+No sub-caminho o `Caddyfile` usa **`handle_path /cobalt/*`**: ele **remove** o prefixo antes de repassar ao container, então `.../cobalt/tunnel?id=1` chega na Cobalt como `/tunnel?id=1` e `.../cobalt/` chega como `/` (a raiz da API). A variante com subdomínio está comentada no fim do `Caddyfile`, e a `API_URL` que a acompanha também.
 
 > 🔎 O tráfego **site → Cobalt continua interno** (`http://cobalt:9000`, pela rede do Docker). Isso não muda com o HTTPS porque não passa pela internet — quem precisa de TLS é só o link que o navegador abre.
 
@@ -584,7 +606,7 @@ O `docker-compose.https.yml` é um **arquivo de override**: ele **não substitui
 
 - sobe o container **`caddy`** nas portas **80 e 443** (usando o `Caddyfile` da raiz do projeto);
 - o site **deixa de publicar a porta 80** (agora ela é do Caddy) e passa a existir na rede interna do Docker — e em `127.0.0.1:8090` na própria VM, para testes com `curl`;
-- a Cobalt **deixa de publicar a 8080** e passa a usar `API_URL=https://cobalt.saverclip.mobaily.com.br/`;
+- a Cobalt **deixa de publicar a 8080** e passa a usar `API_URL=https://saverclip.mobaily.com.br/cobalt/` (sub-caminho servido pelo Caddy);
 - sobe os limites de rate limit da Cobalt (motivo explicado em **13.5**).
 
 Em ~1 minuto: **https://saverclip.mobaily.com.br** ✅ (o `http://` redireciona sozinho para `https://`).
@@ -598,11 +620,14 @@ curl.exe -sI https://saverclip.mobaily.com.br/ | Select-String "HTTP/|server:"
 # 2) O HTTP redireciona para HTTPS (deve vir 308 + location: https://...)
 curl.exe -sI http://saverclip.mobaily.com.br/ | Select-String "HTTP/|location:"
 
-# 3) A Cobalt está pública em HTTPS (resposta JSON da instância)
-curl.exe -s https://cobalt.saverclip.mobaily.com.br/
+# 3) A Cobalt está pública no sub-caminho (resposta JSON da instância)
+curl.exe -s https://saverclip.mobaily.com.br/cobalt/
 
-# 4) O /tunnel responde com CORS liberado (o navegador precisa disso)
-curl.exe -sI "https://cobalt.saverclip.mobaily.com.br/tunnel?url=x" | Select-String "HTTP/|access-control-allow-origin"
+# 4) /cobalt (sem a barra no fim) redireciona para /cobalt/
+curl.exe -sI https://saverclip.mobaily.com.br/cobalt | Select-String "HTTP/|location:"
+
+# 5) O /tunnel responde com CORS liberado (o navegador precisa disso)
+curl.exe -sI "https://saverclip.mobaily.com.br/cobalt/tunnel?url=x" | Select-String "HTTP/|access-control-allow-origin"
 ```
 
 **Teste final (obrigatório):** abra **https://saverclip.mobaily.com.br**, cole um link de Instagram/TikTok e faça o download. É esse download que prova que o `/tunnel` está em HTTPS e que não há bloqueio de *mixed content*.
@@ -622,10 +647,10 @@ Os certificados continuam guardados no volume `caddy_data`, então voltar para H
 - **Os rate limits da Cobalt viram globais.** A Cobalt não tem opção de "confiar no proxy": atrás do Caddy ela enxerga **todas** as requisições como vindas do container do Caddy (e não de cada visitante). Por isso o `docker-compose.https.yml` sobe `RATELIMIT_MAX` para 60/min e `TUNNEL_RATELIMIT_MAX` para 120/min. Com poucos visitantes a diferença é invisível; com muitos, o limite passa a ser do site inteiro.
 - **`http://147.15.122.54` deixa de abrir o site** no modo HTTPS: o Caddy só responde pelos domínios listados no `Caddyfile`. Use o domínio (e volte ao modo HTTP se precisar testar pelo IP).
 - **Nada de IP fixo no código:** o `Caddyfile` fala pelos *nomes* dos serviços (`saveclip:8080` e `cobalt:9000`) — se as portas internas mudarem, é só ajustar ali.
-- **Trocar de domínio no futuro:** atualize os dois blocos do `Caddyfile`, a `API_URL` no `docker-compose.https.yml` e suba de novo com os dois `-f`.
+- **Trocar de domínio no futuro:** atualize o bloco do domínio no `Caddyfile`, a `API_URL` no `docker-compose.https.yml` e suba de novo com os dois `-f`.
 - **Renovação:** automática (o Caddy renova aos 2/3 da validade); para conferir: `docker logs caddy | grep -i certificate`.
 - **Se apagar o volume `caddy_data`** o Caddy reemite os certificados — cuidado, o Let's Encrypt tem limite de tentativas por domínio.
-- **Sem subdomínio?** Dá para servir a Cobalt em `https://saverclip.mobaily.com.br/cobalt/` e pular o passo 2 (DNS): use o bloco `handle_path` comentado no fim do `Caddyfile` e troque a `API_URL` para `https://saverclip.mobaily.com.br/cobalt/`. Vantagem: nenhuma regra de DNS nova. Desvantagem: um único domínio para as duas coisas.
+- **Prefere um subdomínio só para a Cobalt?** Em vez do sub-caminho `/cobalt/`, registre `cobalt.saverclip.mobaily.com.br` (tipo `A` → `147.15.122.54`) no Registro.br, descomente a variante no fim do `Caddyfile`, troque a `API_URL` do `docker-compose.https.yml` para `https://cobalt.saverclip.mobaily.com.br/` e suba de novo com os dois `-f`. Vantagem: um domínio para cada coisa. Desvantagem: mais uma regra de DNS para manter.
 
 > 📚 **Aprenda:** aqui o Caddy faz o papel de *reverse proxy* com TLS: ele **termina o HTTPS** (porta 443), "decifra" a requisição e a entrega já em HTTP simples para o container certo, pela rede interna do Docker. É por isso que a porta 80 deixa de ser do site e a 8080 deixa de ser da Cobalt — do lado de fora, só 80 e 443 existem.
 
@@ -636,23 +661,24 @@ Os certificados continuam guardados no volume `caddy_data`, então voltar para H
 | Sintoma | Causa provável | Solução |
 |---|---|---|
 | `Connection timed out` no navegador | Porta fechada no firewall da Oracle | Seção 8 (Security List + ufw) |
+| `Connection timed out` **só na 443** | Regra de 443 ausente, não salva, ou criada com origem errada (ex: `10.0.0.0/24` em vez de `0.0.0.0/0`) | Seção 13 — confirme a regra **TCP 443 / origem `0.0.0.0/0`**; use o teste `PROBE443` da seção 13, porque `timeout` no PC **não** prova porta fechada |
 | `Permission denied (publickey)` | Chave/usuario errados | Usar `Downloads\ssh-key-2026-08-13.key` + `ubuntu@` |
 | `Please login as the user "ubuntu"` | Usou `opc` | Usar `ubuntu@147.15.122.54` |
 | `docker: command not found` | Docker não instalado | Seção 4 (e faça `exit` + reconectar) |
 | `Cannot connect to the Docker daemon` | Usuário sem permissão | `sudo usermod -aG docker $USER` + reconectar |
 | Site abre, mas YouTube dá `error.api.youtube.login` | YouTube bloqueando IP de datacenter | Já há **retry + fallback Cobalt** automáticos (seção 12); opcional: adicionar `cookies.txt` para melhorar a qualidade (1080p) |
 | `error.api.ffmpeg.missing` | Imagem antiga sem ffmpeg | `docker compose build --no-cache` |
-| `error.api.timeout` / Instagram não baixa | Container da Cobalt fora do ar | `docker compose ps` (o `cobalt` deve estar `Up`) + `docker logs --tail 50 cobalt` + teste `curl -s http://127.0.0.1:8080/` na VM |
+| `error.api.timeout` / Instagram não baixa | Container da Cobalt fora do ar | `docker compose ps` (o `cobalt` deve estar `Up`) + `docker logs --tail 50 cobalt` + teste: `curl -s https://saverclip.mobaily.com.br/cobalt/` (modo HTTPS) ou `curl -s http://127.0.0.1:8080/` (modo HTTP) |
 | Erro `api.auth.api-key.missing` no site | O site não está enviando a chave da Cobalt, ou a chave é diferente da do container | `COBALT_API_KEY` no `.env` da VM precisa ser o **mesmo UUID** do `keys.json` — depois rode `docker compose restart saveclip` |
 | Container `cobalt` reiniciando em loop | `keys.json` ausente, vazio ou com JSON inválido | Recrie o arquivo como na seção 11.2 (`docker logs cobalt` mostra o aviso da Cobalt) |
-| Baixa, mas o arquivo não salva no PC | Link de `/tunnel` bloqueado no navegador | Porta **8080** liberada na Security List (seção 8) + `API_URL` do serviço `cobalt` terminando com `/` |
-| A porta 8080 mostra um JSON da Cobalt em vez do site | Comportamento esperado desde a seção 11 | O site é a **porta 80**; a 8080 é a API Cobalt |
+| Baixa, mas o arquivo não salva no PC | Link de `/tunnel` bloqueado no navegador | **Modo HTTPS:** o bloco `handle_path /cobalt/*` precisa estar no `Caddyfile` e a `API_URL` tem de terminar com `/` (`https://saverclip.mobaily.com.br/cobalt/`). **Modo HTTP:** porta **8080** liberada na Security List (seção 8) + `API_URL` em http com `/` no fim |
+| A porta 8080 mostra um JSON da Cobalt em vez do site | Comportamento esperado no modo HTTP desde a seção 11 | O site é a **porta 80**; a 8080 é a API Cobalt. No modo HTTPS (seção 13) a 8080 fica fechada e a Cobalt é servida em `/cobalt/` |
 | `{"code":404,"message":"Application not found"}` / `502 Application failed to respond` | Você ainda está usando a instância do Railway (trial expirado) | Migre para a Cobalt self-hosted da **seção 11** |
 | Porta 80 já em uso | Outro serviço na porta 80 | `sudo ss -tulpn \| grep :80` |
 | Site some após reiniciar a VM | Container sem `restart` | Usar o `docker compose up -d` (já tem `restart: unless-stopped`) |
 | `ERR_SSL_PROTOCOL_ERROR` / site inacessível depois de ativar o HTTPS | Porta **443** fechada na Oracle (o Caddy escuta, mas o firewall bloqueia) | Passo 1 da **seção 13** (Security List: TCP 443, origem `0.0.0.0/0`) |
-| O `caddy` reinicia em loop / "challenge failed" nos logs | O DNS do domínio ou do subdomínio ainda não aponta para `147.15.122.54` | Passo 2 da **seção 13** + `docker logs caddy` (espere o DNS propagar) |
-| Site em HTTPS, mas o download falha com *mixed content* no console do navegador | A Cobalt ainda está com `API_URL` em `http://`, então o link de `/tunnel` sai em http | Suba com o override da **seção 13.2** (`-f docker-compose.https.yml`) |
+| O `caddy` reinicia em loop / "challenge failed" nos logs | O registro DNS **A** do domínio (ou do subdomínio, na variante comentada) ainda não aponta para `147.15.122.54` | `Resolve-DnsName saverclip.mobaily.com.br -Server 8.8.8.8` + `docker logs --tail 50 caddy` (espere o DNS propagar). Na variante de sub-caminho, nenhum DNS novo é necessário |
+| Site em HTTPS, mas o download falha com *mixed content* no console do navegador | A Cobalt está com `API_URL` em `http://`, então o link de `/tunnel` sai em http | Suba com o override da **seção 13.2** (`-f docker-compose.https.yml`) e confira se a `API_URL` casa com o `Caddyfile` (`https://saverclip.mobaily.com.br/cobalt/`) |
 | `http://147.15.122.54` parou de abrir | Esperado no modo HTTPS: o Caddy só responde pelos domínios do `Caddyfile` | Use o domínio; para testar pelo IP, volte ao modo HTTP (**seção 13.4**) |
 
 **Ver os logs de qualquer problema:**

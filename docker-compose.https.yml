@@ -25,13 +25,14 @@ services:
 
   cobalt:
     # A Cobalt deixa de publicar a porta 8080: o acesso público passa a ser
-    # https://cobalt.saverclip.mobaily.com.br/ (via Caddy).
+    # https://saverclip.mobaily.com.br/cobalt/ (sub-caminho servido pelo Caddy).
     ports: !reset []
     environment:
       # URL pública que a Cobalt usa para montar os links de /tunnel.
       # Precisa ser HTTPS e terminar com "/" — senão o navegador bloqueia
       # o download da página https:// por "mixed content".
-      API_URL: "https://cobalt.saverclip.mobaily.com.br/"
+      # Este valor tem de casar com o Caddyfile (bloco handle_path /cobalt/*).
+      API_URL: "https://saverclip.mobaily.com.br/cobalt/"
       # A Cobalt não tem opção de "confiar no proxy": atrás do Caddy ela vê
       # TODAS as requisições como vindas do container do Caddy, então os
       # limites por IP viram limites globais do site. Por isso os valores
