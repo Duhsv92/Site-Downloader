@@ -28,11 +28,13 @@ app = Flask(__name__)
 # 🔑 CONFIGURAÇÃO DA API COBALT / LINK DA API KEY
 # ==============================================================================
 # Para trocar o link da API, altere o arquivo .env (COBALT_API_URL=...)
-# ou nas Variáveis de Ambiente na Vercel / Railway.
+# ou nas Variáveis de Ambiente na Vercel.
 # Você também pode trocar o valor padrão na variável DEFAULT_COBALT_URL abaixo:
 # ==============================================================================
 
-DEFAULT_COBALT_URL = "https://cobalt-production-e133.up.railway.app"
+# Padrão usado só quando COBALT_API_URL não está definida (ex: Vercel sem a
+# variável configurada). Aponta para a instância Cobalt self-hosted da VM.
+DEFAULT_COBALT_URL = "http://saverclip.mobaily.com.br:8080"
 
 raw_url = os.environ.get("COBALT_API_URL", DEFAULT_COBALT_URL).strip().rstrip("/")
 if raw_url and not (raw_url.startswith("http://") or raw_url.startswith("https://")):
@@ -121,7 +123,7 @@ def api_download():
                 build_youtube_result(url, body.get("videoQuality", "1080"))
             ), 200
         except Exception as exc:
-            # Log do erro real para diagnóstico nos logs do Railway
+            # Log do erro real para diagnóstico nos logs do servidor
             print(f"[yt-dlp/metadata] ERRO: {exc}", flush=True)
             return jsonify({
                 "status": "error",
@@ -261,7 +263,7 @@ def ytdlp_download():
     try:
         filepath, filename, tmpdir = download_to_temp(url, mode, quality)
     except Exception as exc:
-        # Log do erro real para diagnóstico nos logs do Railway
+        # Log do erro real para diagnóstico nos logs do servidor
         print(f"[yt-dlp/download] ERRO ({mode}): {exc}", flush=True)
         return jsonify({
             "status": "error",

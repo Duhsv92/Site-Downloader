@@ -13,6 +13,9 @@ env/
 # Cookies do YouTube (segredo — nunca subir para o GitHub)
 cookies.txt
 
+# Chave de API da instância Cobalt self-hosted (segredo — nunca subir)
+keys.json
+
 # Vercel
 .vercel/
 

@@ -39,11 +39,14 @@ app = Flask(__name__, static_folder='.')
 # 🔑 CONFIGURAÇÃO DA API COBALT / LINK DA API KEY
 # ==============================================================================
 # Para trocar o link da API, altere o arquivo .env (COBALT_API_URL=...)
-# ou nas Variáveis de Ambiente da hospedagem (ex: Vercel / Railway).
+# ou nas Variáveis de Ambiente da hospedagem (ex: Vercel).
 # Você também pode trocar o valor padrão na variável DEFAULT_COBALT_URL abaixo:
 # ==============================================================================
 
-DEFAULT_COBALT_URL = "https://cobalt-production-e133.up.railway.app"
+# Padrão usado só quando COBALT_API_URL não está definida (ex: rodando sem .env).
+# Aponta para a instância Cobalt self-hosted da VM (docker-compose.yml).
+# Dentro do Docker (produção) o .env usa o nome interno da rede: cobalt:9000
+DEFAULT_COBALT_URL = "http://saverclip.mobaily.com.br:8080"
 
 raw_url = os.environ.get("COBALT_API_URL", DEFAULT_COBALT_URL).strip().rstrip("/")
 if raw_url and not (raw_url.startswith("http://") or raw_url.startswith("https://")):
@@ -164,7 +167,7 @@ def api_download():
 
             # Fallback automático: quando o YouTube bloqueia o IP de datacenter
             # da VM ("Sign in to confirm you're not a bot"), tenta a API Cobalt
-            # (hospedada no Railway, que costuma passar nesse bloqueio).
+            # (self-hosted na VM ou uma instância externa — veja COBALT_API_URL).
             if err_code == "error.api.youtube.login" and COBALT_API_URL:
                 try:
                     data, status = _cobalt_request(url, body)
@@ -242,7 +245,7 @@ def ytdlp_download():
     try:
         filepath, filename, tmpdir = download_to_temp(url, mode, quality)
     except Exception as exc:
-        # Log do erro real para diagnóstico nos logs do Railway
+        # Log do erro real para diagnóstico nos logs do servidor
         print(f"[yt-dlp/download] ERRO ({mode}): {exc}", flush=True)
         return jsonify({
             "status": "error",

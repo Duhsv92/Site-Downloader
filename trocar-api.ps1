@@ -56,6 +56,8 @@ $safeUrl = $newUrl.Replace('$', '$$')
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $targets = @('.env', 'server.py', 'api\download.py', 'COMO CONFIGURAR.md', 'DEPLOY VPS ORACLE.md')
 
+# Instância self-hosted (Cobalt rodando na própria VM da Oracle) — trocada junto
+$selfHostedPattern = 'https?://saverclip\.mobaily\.com\.br:\d+'
 # Qualquer domínio Railway já registrado no projeto (instância antiga ou atual)
 $railwayPattern = 'https?://[a-zA-Z0-9\-\.]+\.up\.railway\.app'
 # Valor padrão no código-fonte
@@ -107,8 +109,9 @@ foreach ($rel in $targets) {
     $nl       = Get-NewLineStyle $original
     $hits     = 0
 
-    # --- URL da API (substitui qualquer domínio .up.railway.app) ---
+    # --- URL da API (self-hosted na VM e/ou qualquer domínio .up.railway.app) ---
     $before  = $content
+    $content = [regex]::Replace($content, $selfHostedPattern, $safeUrl, 'IgnoreCase')
     $content = [regex]::Replace($content, $railwayPattern, $safeUrl, 'IgnoreCase')
     if ($content -ne $before) { $hits++ }
 

@@ -5,6 +5,12 @@
 #   docker compose up -d --build     # construir e subir
 #   docker compose logs -f           # acompanhar logs
 #   docker compose down              # parar
+#
+# Este arquivo sobe DOIS containers na mesma rede interna do Docker:
+#   1) saveclip -> o site (Flask + yt-dlp + ffmpeg) .......... porta pública 80
+#   2) cobalt   -> API Cobalt self-hosted (IG/FB/TikTok + fallback do YouTube)
+#                                                              porta pública 8080
+# O site fala com a Cobalt pela rede interna (http://cobalt:9000), sem internet.
 # ============================================================
 services:
   saveclip:
@@ -15,11 +21,13 @@ services:
     ports:
       # Formato: "PORTA_DA_VM:PORTA_DO_CONTAINER"
       # 80 = HTTP padrão -> site acessível em http://IP (sem digitar :8080)
+      # Obs.: a porta 8080 da VM agora é usada pela API Cobalt (serviço "cobalt"
+      #       abaixo), porque é nela que ficam os links de /tunnel que o
+      #       navegador do visitante precisa abrir para baixar o arquivo.
       - "80:8080"
-      # 8080 também exposto, opcional, para teste direto na porta 8080
-      - "8080:8080"
     env_file:
-      # Lê as variáveis do arquivo .env criado na VM (COBALT_API_URL, PORT...)
+      # Lê as variáveis do arquivo .env criado na VM
+      # (COBALT_API_URL, COBALT_API_KEY, COBALT_AUTH_SCHEME, PORT...)
       - .env
     environment:
       # Caminho do arquivo de cookies do YouTube DENTRO do container.
@@ -30,3 +38,50 @@ services:
       # Monta o cookies.txt da VM dentro do container (leitura apenas).
       # IMPORTANTE: crie o arquivo antes (pode ser vazio): touch cookies.txt
       - ./cookies.txt:/app/cookies.txt:ro
+
+  cobalt:
+    # Imagem oficial da API Cobalt (multi-arch: funciona na VM ARM64 da Oracle).
+    # É a mesma imagem que rodava no Railway — agora hospedada na sua VM de graça.
+    image: ghcr.io/imputnet/cobalt:11
+    container_name: cobalt
+    restart: unless-stopped
+    init: true
+    ports:
+      # A Cobalt escuta na porta 9000 DENTRO do container (API_PORT).
+      # 8080 é a porta da VM que já está liberada na Security List da Oracle.
+      # É esta porta pública que aparece nos links de /tunnel (download dos
+      # arquivos pesados pelo navegador do visitante).
+      - "8080:9000"
+    environment:
+      # URL PÚBLICA da instância, COM a barra "/" no final.
+      # A Cobalt usa esta URL para montar os links de /tunnel — se ela ficar
+      # errada, o download quebra mesmo com a API no ar.
+      API_URL: "http://saverclip.mobaily.com.br:8080/"
+      # Porta interna (não mude sem ajustar o mapeamento "8080:9000" acima).
+      API_PORT: "9000"
+      API_LISTEN_ADDRESS: "0.0.0.0"
+      # Permite que o navegador baixe os links de /tunnel (CORS: origin *).
+      CORS_WILDCARD: "1"
+      # Limite de duração por vídeo, em segundos (900 = 15 minutos).
+      DURATION_LIMIT: "900"
+      PROCESSING_PRIORITY: "10"
+      FORCE_LOCAL_PROCESSING: "never"
+      # Rate limit por IP das chamadas de API e dos downloads (/tunnel).
+      RATELIMIT_WINDOW: "60"
+      RATELIMIT_MAX: "20"
+      SESSION_RATELIMIT_WINDOW: "60"
+      SESSION_RATELIMIT_MAX: "10"
+      TUNNEL_LIFESPAN: "90"
+      TUNNEL_RATELIMIT_WINDOW: "60"
+      TUNNEL_RATELIMIT_MAX: "40"
+      # Autenticação por API key (arquivo keys.json montado logo abaixo).
+      # Como a instância é pública, isto impede que estranhos usem a sua API:
+      # só quem tem a chave (o seu site) consegue processar links.
+      API_KEY_URL: "file:///keys.json"
+      API_AUTH_REQUIRED: "1"
+    volumes:
+      # O keys.json NÃO vai para o GitHub (está no .gitignore).
+      # Crie na VM a partir do keys.json.example e use o MESMO valor em
+      # COBALT_API_KEY no .env. Os links de /tunnel continuam funcionando para
+      # o navegador — só as chamadas de API exigem a chave.
+      - ./keys.json:/keys.json:ro
