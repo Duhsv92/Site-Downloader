@@ -363,7 +363,24 @@ curl -s -X POST http://127.0.0.1:8080/ \
   -H "Accept: application/json" -H "Content-Type: application/json" \
   -H "Authorization: Api-Key $KEY" \
   -d '{"url":"https://www.instagram.com/reel/teste/"}'
+#    -> {"status":"error","error":{"code":"error.api.fetch.empty"}}  (link de mentira: o importante é NÃO ser erro de chave)
+
+# 4) Sem a chave a API tem de RECUSAR (prova que ninguém de fora usa a sua instância)
+curl -s -X POST http://127.0.0.1:8080/ \
+  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -d '{"url":"https://www.instagram.com/reel/teste/"}'
+#    -> {"status":"error","error":{"code":"error.api.auth.key.missing"}}
+
+# 5) O /tunnel abre no navegador do visitante? (precisa dar 200 + Access-Control-Allow-Origin: *)
+OUT=$(curl -s -X POST http://127.0.0.1:8080/ \
+  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -H "Authorization: Api-Key $KEY" \
+  -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","videoQuality":"480"}')
+TUN=$(echo "$OUT" | python3 -c "import sys,json;print(json.load(sys.stdin).get('url',''))")
+curl -s -D - -o /dev/null "$TUN" | head -5   # HTTP/1.1 200 OK + Access-Control-Allow-Origin: *
 ```
+
+> ✅ **Verificado em 25/09/2026** (`1a852fe`) na VM real: os 5 testes acima responderam exatamente como indicado nos comentários. O teste 4 (`api-key.missing`) é o mais importante: confirma que a sua instância está protegida.
 
 Se aparecer erro, veja a seção **14 (Troubleshooting)** — cada mensagem de erro já tem a causa provável e a solução.
 
@@ -441,10 +458,16 @@ cat .env      # confira o resultado
 
 ```bash
 cd ~/Site-Downloader
-docker compose up -d            # baixa a imagem da Cobalt (~1-2 min) e sobe os 2 containers
+docker compose up -d --build    # baixa a imagem da Cobalt (~1-2 min), reconstrói o site e sobe os 2 containers
 docker compose ps               # devem aparecer "saveclip" e "cobalt" com status Up
 docker logs --tail 25 cobalt    # deve mostrar "cobalt API ^ω^" e "url: http://saverclip.mobaily.com.br:8080/"
 ```
+
+> 💡 **Use `--build`** na primeira vez (mudamos o `docker-compose.yml`: a porta 8080 passou do site para a Cobalt). Depois disso, `docker compose up -d` basta para mudanças só de `.env`.
+>
+> 📌 **Conferido em 25/09/2026:** o `docker compose ps` mostrou
+> `cobalt ... 0.0.0.0:8080->9000/tcp` e `saveclip ... 0.0.0.0:80->8080/tcp`, e o log da Cobalt trouxe
+> `api keys loaded successfully!` — ou seja, o `keys.json` foi lido corretamente.
 
 Valide de dentro da VM (o `GET /` devolve as informações da instância):
 

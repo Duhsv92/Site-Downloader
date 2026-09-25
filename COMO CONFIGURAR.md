@@ -142,7 +142,7 @@ sed -i "s|^COBALT_API_URL=.*|COBALT_API_URL=http://cobalt:9000|" .env
 grep -q '^COBALT_API_KEY=' .env && sed -i "s|^COBALT_API_KEY=.*|COBALT_API_KEY=$KEY|" .env || echo "COBALT_API_KEY=$KEY" >> .env
 grep -q '^COBALT_AUTH_SCHEME=' .env || echo "COBALT_AUTH_SCHEME=Api-Key" >> .env
 
-docker compose up -d          # sobe (ou baixa) a imagem oficial ghcr.io/imputnet/cobalt:11
+docker compose up -d --build  # sobe (ou baixa) a imagem oficial ghcr.io/imputnet/cobalt:11
 docker compose ps             # deve listar saveclip E cobalt como Up
 curl -s http://127.0.0.1:8080/   # informações da instância Cobalt
 ```
