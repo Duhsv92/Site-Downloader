@@ -1,0 +1,61 @@
+# ============================================================
+# SaveClip — modo HTTPS (arquivo de "override")
+# ============================================================
+# Este arquivo NÃO substitui o docker-compose.yml: ele é aplicado EM CIMA
+# dele (merge). Sem ele, tudo continua exatamente como está hoje:
+# site em http:// (porta 80) e Cobalt pública em http://...:8080.
+#
+# Para ATIVAR o HTTPS (depois de criar o DNS e liberar 80/443 na Oracle):
+#   cd ~/Site-Downloader
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+#
+# Para VOLTAR ao modo HTTP:
+#   cd ~/Site-Downloader
+#   docker compose up -d
+#
+# Guia completo: "DEPLOY VPS ORACLE.md", seção 13.
+# ============================================================
+services:
+  saveclip:
+    # O Caddy passa a ser o dono das portas 80 e 443.
+    # O site fica acessível pela rede interna do Docker (nome "saveclip")
+    # e em 127.0.0.1:8090 na própria VM — útil para testar com curl.
+    ports: !override
+      - "127.0.0.1:8090:8080"
+
+  cobalt:
+    # A Cobalt deixa de publicar a porta 8080: o acesso público passa a ser
+    # https://cobalt.saverclip.mobaily.com.br/ (via Caddy).
+    ports: !reset []
+    environment:
+      # URL pública que a Cobalt usa para montar os links de /tunnel.
+      # Precisa ser HTTPS e terminar com "/" — senão o navegador bloqueia
+      # o download da página https:// por "mixed content".
+      API_URL: "https://cobalt.saverclip.mobaily.com.br/"
+      # A Cobalt não tem opção de "confiar no proxy": atrás do Caddy ela vê
+      # TODAS as requisições como vindas do container do Caddy, então os
+      # limites por IP viram limites globais do site. Por isso os valores
+      # sobem aqui (60 chamadas de API e 120 downloads por minuto no total).
+      RATELIMIT_MAX: "60"
+      TUNNEL_RATELIMIT_MAX: "120"
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: unless-stopped
+    depends_on:
+      - saveclip
+      - cobalt
+    ports:
+      - "80:80"     # usado no desafio HTTP-01 do Let's Encrypt
+      - "443:443"   # HTTPS
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Onde ficam os certificados. Se este volume for apagado, o Caddy
+      # emite tudo de novo (e o Let's Encrypt tem limite de tentativas).
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,59 @@
+# ============================================================
+# SaveClip — HTTPS automático com Caddy
+# ============================================================
+# Este arquivo é usado APENAS quando você ativa o modo HTTPS:
+#
+#   cd ~/Site-Downloader
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+#
+# O Caddy passa a escutar nas portas 80 e 443 da VM, emite e renova o
+# certificado sozinho (Let's Encrypt) e repassa as requisições para os
+# containers pela rede interna do Docker — o navegador só vê o domínio,
+# nunca o IP nem a porta 8080.
+#
+# Pré-requisitos (os DOIS são obrigatórios — seção 13 do guia):
+#   1) Registro DNS tipo "A" para CADA domínio abaixo apontando para 147.15.122.54
+#   2) Porta 443 liberada na Security List da Oracle (a 80 já está desde a seção 8)
+#
+# Opcional: e-mail para os avisos de vencimento do certificado.
+# {
+#     email seu-email@exemplo.com
+# }
+
+# ------------------------------------------------------------
+# Site (páginas + /api/download + /api/yt-dlp/download)
+# ------------------------------------------------------------
+saverclip.mobaily.com.br {
+	encode zstd gzip
+	reverse_proxy saveclip:8080
+}
+
+# ------------------------------------------------------------
+# Cobalt (API interna + links de /tunnel que o navegador abre)
+# Precisa ser HTTPS: uma página https:// não consegue baixar de
+# http:// (o navegador bloqueia por "mixed content").
+# Sem "encode" aqui de propósito: esta rota entrega vídeo/áudio
+# por streaming (Range/206) — compressão não ajuda e só atrapalha.
+# ------------------------------------------------------------
+cobalt.saverclip.mobaily.com.br {
+	reverse_proxy cobalt:9000
+}
+
+# ------------------------------------------------------------
+# ALTERNATIVA (sem subdomínio, sem mexer no DNS):
+# sirva a Cobalt num "sub-caminho" do próprio domínio do site.
+# Nesse caso troque os dois blocos acima por:
+#
+# saverclip.mobaily.com.br {
+#     encode zstd gzip
+#     handle_path /cobalt/* {
+#         reverse_proxy cobalt:9000
+#     }
+#     handle {
+#         reverse_proxy saveclip:8080
+#     }
+# }
+#
+# E no docker-compose.https.yml use:
+#     API_URL: "https://saverclip.mobaily.com.br/cobalt/"
+# ------------------------------------------------------------

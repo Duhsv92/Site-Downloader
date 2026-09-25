@@ -57,7 +57,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $targets = @('.env', 'server.py', 'api\download.py', 'COMO CONFIGURAR.md', 'DEPLOY VPS ORACLE.md')
 
 # Instância self-hosted (Cobalt rodando na própria VM da Oracle) — trocada junto
-$selfHostedPattern = 'https?://saverclip\.mobaily\.com\.br:\d+'
+$selfHostedPattern = 'https?://saverclip\.mobaily\.com\.br:\d+|https?://cobalt\.saverclip\.mobaily\.com\.br'   # porta 8080 (http) ou subdomínio HTTPS (seção 13)
 # Qualquer domínio Railway já registrado no projeto (instância antiga ou atual)
 $railwayPattern = 'https?://[a-zA-Z0-9\-\.]+\.up\.railway\.app'
 # Valor padrão no código-fonte

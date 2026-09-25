@@ -97,6 +97,9 @@ Se no futuro você trocar a instância Cobalt (self-hosted ou externa) ou precis
   railway variables set COBALT_API_URL=https://sua-instancia.up.railway.app
   ```
 - **No Código Python:** o valor padrão é a variável `DEFAULT_COBALT_URL`, nos arquivos [server.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/server.py) e [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py) — usada apenas quando não existe `.env`/variável de ambiente (ex: Vercel sem `COBALT_API_URL` configurada).
+- **Com HTTPS na VM (opcional):** depois de ativar o HTTPS (seção 13 do [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md)), a URL **pública** da Cobalt muda de `http://saverclip.mobaily.com.br:8080` para `https://cobalt.saverclip.mobaily.com.br` — é esse o valor a usar no `.env` do seu PC/Vercel e na `API_URL` do `docker-compose.https.yml`. Dentro da VM o site continua usando `http://cobalt:9000` (rede interna do Docker).
+
+
 
 ---
 
