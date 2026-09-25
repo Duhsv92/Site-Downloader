@@ -28,11 +28,14 @@ services:
     # https://saverclip.mobaily.com.br/cobalt/ (sub-caminho servido pelo Caddy).
     ports: !reset []
     environment:
-      # URL pública que a Cobalt usa para montar os links de /tunnel.
-      # Precisa ser HTTPS e terminar com "/" — senão o navegador bloqueia
-      # o download da página https:// por "mixed content".
-      # Este valor tem de casar com o Caddyfile (bloco handle_path /cobalt/*).
-      API_URL: "https://saverclip.mobaily.com.br/cobalt/"
+      # URL pública da instância. ATENÇÃO: a Cobalt usa SÓ a ORIGEM desta URL
+      # (esquema + domínio) para montar os links de /tunnel — o caminho é
+      # ignorado. Por isso os links saem como
+      # https://saverclip.mobaily.com.br/tunnel?id=... e o Caddyfile tem uma
+      # rota "handle /tunnel*" apontando para este container.
+      # Precisa ser HTTPS: uma página https:// não consegue baixar de http://
+      # (o navegador bloqueia por "mixed content").
+      API_URL: "https://saverclip.mobaily.com.br/"
       # A Cobalt não tem opção de "confiar no proxy": atrás do Caddy ela vê
       # TODAS as requisições como vindas do container do Caddy, então os
       # limites por IP viram limites globais do site. Por isso os valores

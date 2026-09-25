@@ -29,21 +29,27 @@ saverclip.mobaily.com.br {
 	# /cobalt (sem a barra no fim) cairia no site e responderia 404: manda para /cobalt/
 	redir /cobalt /cobalt/ 308
 
-	# Cobalt (API interna + os links de /tunnel que o navegador abre).
-	# Precisa ser HTTPS: uma página https:// não consegue baixar de
-	# http:// (o navegador bloqueia por "mixed content").
-	#
-	# O handle_path REMOVE o prefixo antes de repassar ao container:
-	#   https://saverclip.mobaily.com.br/cobalt/            -> cobalt:9000/
-	#   https://saverclip.mobaily.com.br/cobalt/tunnel?id=1 -> cobalt:9000/tunnel?id=1
-	#
-	# Sem "encode" de propósito: esta rota entrega vídeo/áudio por
-	# streaming (Range/206) — compressão não ajuda e só atrapalha.
+	# 1) Links de /tunnel gerados pela Cobalt — é este o link que o navegador do
+	#    visitante abre para baixar o arquivo (pesado). A Cobalt monta o link
+	#    como "<origem do API_URL>/tunnel?id=..." — ela ignora qualquer caminho
+	#    do API_URL —, então esta rota fica na RAIZ do domínio.
+	#    Sem "encode" de propósito: entrega vídeo/áudio em streaming (Range/206),
+	#    e compressão aqui não ajuda e só atrapalha.
+	handle /tunnel* {
+		reverse_proxy cobalt:9000
+	}
+
+	# 2) API da Cobalt (health check e chamadas manuais) no sub-caminho /cobalt/.
+	#    Precisa ser HTTPS: uma página https:// não consegue baixar de http://
+	#    (o navegador bloqueia por "mixed content").
+	#    O handle_path REMOVE o prefixo antes de repassar ao container:
+	#      https://saverclip.mobaily.com.br/cobalt/       -> cobalt:9000/
+	#      https://saverclip.mobaily.com.br/cobalt/tunnel -> cobalt:9000/tunnel
 	handle_path /cobalt/* {
 		reverse_proxy cobalt:9000
 	}
 
-	# Todo o resto é o site Flask (páginas, /api/download, /api/yt-dlp/...).
+	# 3) Todo o resto é o site Flask (páginas, /api/download, /api/yt-dlp/...).
 	handle {
 		encode zstd gzip
 		reverse_proxy saveclip:8080
