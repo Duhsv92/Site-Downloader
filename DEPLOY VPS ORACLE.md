@@ -613,6 +613,14 @@ O `docker-compose.https.yml` é um **arquivo de override**: ele **não substitui
 
 Em ~1 minuto: **https://saverclip.mobaily.com.br** ✅ (o `http://` redireciona sozinho para `https://`).
 
+> ⚠️ **Depois de ativar o HTTPS, TODO update precisa dos dois `-f`.** O comando "normal" de atualização (`docker compose up -d --build`, sem o `-f docker-compose.https.yml`) **derruba o modo HTTPS**: ele volta a mapear a porta **80** para o site, que já é do Caddy — o container do site não sobe (*port is already allocated*) e o domínio passa a responder **502**. Nesse caso, rode de novo com os dois `-f` (ou volte ao HTTP pela **13.4** e ative outra vez).
+>
+> ```bash
+> cd ~/Site-Downloader
+> git pull
+> docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build   # <- sempre com os dois -f
+> ```
+
 ### 13.3. Testes (do seu PC, no PowerShell)
 
 ```powershell
@@ -688,6 +696,7 @@ Os certificados continuam guardados no volume `caddy_data`, então voltar para H
 | O `caddy` reinicia em loop / "challenge failed" nos logs | O registro DNS **A** do domínio (ou do subdomínio, na variante comentada) ainda não aponta para `147.15.122.54` | `Resolve-DnsName saverclip.mobaily.com.br -Server 8.8.8.8` + `docker logs --tail 50 caddy` (espere o DNS propagar). Na variante de sub-caminho, nenhum DNS novo é necessário |
 | Site em HTTPS, mas o download falha com *mixed content* no console do navegador | A Cobalt está com `API_URL` em `http://`, então o link de `/tunnel` sai em http | Suba com o override da **seção 13.2** (`-f docker-compose.https.yml`) — a `API_URL` precisa ser `https://saverclip.mobaily.com.br/`, pois a Cobalt usa só a **origem** dela |
 | O download salva um arquivo **HTML** (página/0 KB) em vez do vídeo | O link de `/tunnel` caiu no site, e não na Cobalt | Confira no `Caddyfile` a rota `handle /tunnel*` → `cobalt:9000` (seção 13.5) e teste: `curl.exe -sI https://saverclip.mobaily.com.br/tunnel?url=x` deve responder **400** + `Access-Control-Allow-Origin` (e não `200` + `text/html`) |
+| Site responde **502** depois de um `git pull` + `docker compose up -d --build` | O comando foi rodado **sem** o `-f docker-compose.https.yml`: o site tentou pegar a porta **80**, que agora é do Caddy (`port is already allocated`) | Suba de novo com os **dois `-f`** (seção 13.2). Confira com `docker compose ps` e `docker compose logs saveclip` |
 | `http://147.15.122.54` parou de abrir | Esperado no modo HTTPS: o Caddy só responde pelos domínios do `Caddyfile` | Use o domínio; para testar pelo IP, volte ao modo HTTP (**seção 13.4**) |
 
 **Ver os logs de qualquer problema:**
