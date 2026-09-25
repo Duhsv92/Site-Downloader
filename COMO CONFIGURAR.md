@@ -8,7 +8,7 @@ A aplicação é dividida em duas partes para garantir total segurança:
 
 > ▶️ **YouTube é baixado via `yt-dlp`** (não usa mais a Cobalt por padrão): o servidor extrai os metadados e baixa o vídeo (MP4) ou áudio (MP3) diretamente, com qualidade até 1080p (padrão) ou superior, usando o **ffmpeg** para mesclar vídeo+áudio e converter para MP3. Se o YouTube bloquear o IP da VM (datacenter), o sistema **cai automaticamente na API Cobalt** como fallback. Veja a seção 4 e o guia [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md).
 
-> ✅ **Status atual (14/08/2026):** o SaveClip está **no ar e funcional** em **http://147.15.122.54** (VM da Oracle Cloud, Docker), com YouTube (MP4 1080p + MP3 320kbps via yt-dlp + fallback Cobalt), Instagram, Facebook e TikTok funcionando. O **Railway ficou apenas com a API Cobalt** (`api-production-664d8.up.railway.app`). Para o deploy na VM e como atualizar o site, veja o guia [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md).
+> ✅ **Status atual (14/08/2026):** o SaveClip está **no ar e funcional** em **http://147.15.122.54** (VM da Oracle Cloud, Docker), com YouTube (MP4 1080p + MP3 320kbps via yt-dlp + fallback Cobalt), Instagram, Facebook e TikTok funcionando. O **Railway ficou apenas com a API Cobalt** (`cobalt-production-e133.up.railway.app`). Para o deploy na VM e como atualizar o site, veja o guia [DEPLOY VPS ORACLE.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/DEPLOY%20VPS%20ORACLE.md).
 
 ---
 
@@ -27,7 +27,7 @@ A aplicação é dividida em duas partes para garantir total segurança:
 
    Edite o arquivo `.env` e defina a URL da sua API:
    ```env
-   COBALT_API_URL=https://api-production-664d8.up.railway.app
+   COBALT_API_URL=https://cobalt-production-e133.up.railway.app
    PORT=8080
    ```
 
@@ -71,7 +71,7 @@ O projeto está totalmente pré-configurado com [vercel.json](file:///c:/Users/E
 3. **Configure as Variáveis de Ambiente na Vercel:**
    - Na tela de Deploy (ou em **Settings → Environment Variables**), adicione:
      - **Key (Nome):** `COBALT_API_URL`
-     - **Value (Valor):** `https://api-production-664d8.up.railway.app`
+     - **Value (Valor):** `https://cobalt-production-e133.up.railway.app`
    - Clique em **Add**.
 
 4. **Clique em Deploy:**
@@ -88,7 +88,7 @@ Se no futuro você alterar sua instância do Railway ou precisar atualizar o lin
 - **Na Vercel:** Atualize o valor em **Settings → Environment Variables** no painel da Vercel.
 - **No Railway:** Atualize o valor em **Settings → Variables** do serviço no painel do Railway, ou pelo CLI:
   ```bash
-  railway variables set COBALT_API_URL=https://nova-url-da-api.up.railway.app
+  railway variables set COBALT_API_URL=https://cobalt-production-e133.up.railway.app
   ```
 - **No Código Python:** Altere a variável `DEFAULT_COBALT_URL` nos arquivos [server.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/server.py) e [api/download.py](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/api/download.py).
 
@@ -122,7 +122,44 @@ Caso queira hospedar sua própria instância da API Cobalt:
 1. Acesse [railway.com](https://railway.com) e crie uma conta.
 2. Acesse `railway.com/new`, busque pelo template **"Cobalt"** e clique em **Deploy**.
 3. No painel do Railway, vá em **Settings → Networking → Generate Domain**.
-4. Copie o domínio gerado (ex: `https://cobalt-api-xxxxx.up.railway.app`) e defina em `COBALT_API_URL`.
+4. Copie o domínio gerado (ex: `https://cobalt-production-e133.up.railway.app`) e defina em `COBALT_API_URL`.
+
+### 🔁 Recriando a instância Cobalt do zero (se ela cair)
+
+Sintoma de instância removida: o domínio responde **`{"status":"error","code":404,"message":"Application not found"}`** com o header `x-railway-fallback: true` (quem respondeu foi o edge do Railway, não a Cobalt). Nesse caso:
+
+1. [railway.com](https://railway.com) → **New Project** → **Deploy a Docker Image** → cole `ghcr.io/imputnet/cobalt:11` → **Deploy**.
+2. **Settings → Networking → Public Networking → Generate Domain** e confirme que a **porta pública é `9000`** (a imagem oficial da Cobalt expõe `9000`, é onde o container escuta).
+3. Em **Variables**, defina:
+   ```env
+   API_URL=https://cobalt-production-e133.up.railway.app/
+   API_PORT=9000
+   ```
+   > 🔑 A `API_URL` precisa ser o **domínio público, com a barra `/` no final**. É ela que a Cobalt usa para montar os links de `/tunnel` — ou seja, os links de download que o site repassa ao visitante. Se ficar errada, o download quebra mesmo com a API "no ar".
+4. Faça **Redeploy** e valide (o `GET /` devolve um JSON com `"cobalt":{"version":"11.x","services":[...]}`):
+   ```bash
+   curl -s https://cobalt-production-e133.up.railway.app/
+   ```
+5. Atualize `COBALT_API_URL` no `.env` local, na Vercel e na VM (seção 3).
+
+| Sintoma | Significado |
+|:--|:--|
+| `404 Application not found` | O domínio não aponta para nenhum serviço (instância removida/renomeada) |
+| `502 Application failed to respond` | O serviço existe, mas o container não responde — confira a **porta pública (9000)** e os **Deploy/Run logs** do Railway |
+| `api.auth.api-key.missing` | A instância exige API key — configure `COBALT_API_KEY` (+ `COBALT_AUTH_SCHEME=Api-Key`) |
+
+### 🔐 API Key: qual esquema de autenticação o SaveClip usa
+
+A Cobalt aceita dois esquemas no header `Authorization`:
+
+| Esquema | Para que serve | Como configurar no SaveClip |
+|:--|:--|:--|
+| `Api-Key <uuid>` | Chave de API do arquivo `keys.json` da instância | `COBALT_AUTH_SCHEME=Api-Key` (**padrão**) |
+| `Bearer <jwt>` | Token JWT temporário emitido pelo `/session` (Cloudflare Turnstile) | `COBALT_AUTH_SCHEME=Bearer` |
+
+> ⚠️ Antes, o código enviava sempre `Bearer`, que **não** funciona com uma API key (a Cobalt responderia `api.auth.api-key.missing`). Agora o esquema é configurável e o padrão é `Api-Key`.
+
+Para exigir autenticação na instância Cobalt: `API_KEY_URL=file:///keys.json` + `API_AUTH_REQUIRED=1`. O `keys.json` precisa existir **dentro do container** — no Railway, isso exige um **Volume** montado. Sem API key, a instância continua protegida pelo rate limit por IP (`RATELIMIT_WINDOW` / `RATELIMIT_MAX`).
 
 ---
 
@@ -155,7 +192,7 @@ Caso queira hospedar sua própria instância da API Cobalt:
 
 4. **Configure a variável de ambiente:**
    ```bash
-   railway variables set COBALT_API_URL=https://api-production-664d8.up.railway.app
+   railway variables set COBALT_API_URL=https://cobalt-production-e133.up.railway.app
    ```
    > 🔑 A `COBALT_API_URL` deve apontar para a **API Cobalt** que processa Instagram, Facebook e TikTok (veja a seção 5).
 
@@ -189,7 +226,7 @@ Acompanhe com `railway logs`, `railway status` e `railway deployment list`.
 2. Crie o projeto no Railway (`railway.com` → **New Project** → **Deploy from GitHub repo**) e selecione o repositório.
 3. Configure as variáveis de ambiente (Settings → Variables):
    ```env
-   COBALT_API_URL=https://api-production-664d8.up.railway.app
+   COBALT_API_URL=https://cobalt-production-e133.up.railway.app
    PORT=8080
    ```
 4. Gere o domínio público (Settings → Networking → **Generate Domain**).

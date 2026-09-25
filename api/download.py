@@ -32,7 +32,7 @@ app = Flask(__name__)
 # Você também pode trocar o valor padrão na variável DEFAULT_COBALT_URL abaixo:
 # ==============================================================================
 
-DEFAULT_COBALT_URL = "https://api-production-664d8.up.railway.app"
+DEFAULT_COBALT_URL = "https://cobalt-production-e133.up.railway.app"
 
 raw_url = os.environ.get("COBALT_API_URL", DEFAULT_COBALT_URL).strip().rstrip("/")
 if raw_url and not (raw_url.startswith("http://") or raw_url.startswith("https://")):
@@ -41,6 +41,15 @@ else:
     COBALT_API_URL = raw_url
 
 COBALT_API_KEY = os.environ.get("COBALT_API_KEY", "")
+
+# Esquema do header Authorization aceito pela API Cobalt:
+#   "Api-Key" -> chave de API (arquivo keys.json da instância)  [padrão]
+#   "Bearer"  -> token JWT temporário emitido pelo endpoint /session (Turnstile)
+COBALT_AUTH_SCHEME = os.environ.get("COBALT_AUTH_SCHEME", "Api-Key").strip().lower()
+if COBALT_AUTH_SCHEME == "bearer":
+    COBALT_AUTH_SCHEME = "Bearer"
+else:
+    COBALT_AUTH_SCHEME = "Api-Key"
 
 ALLOWED_DOMAINS = (
     "instagram.com",
@@ -171,7 +180,7 @@ def api_download():
 
     if COBALT_API_KEY:
         headers["Authorization"] = (
-            f"Bearer {COBALT_API_KEY}"
+            f"{COBALT_AUTH_SCHEME} {COBALT_API_KEY}"
         )
 
     # ========================================================

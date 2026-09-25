@@ -187,7 +187,7 @@ nano .env
 Cole este conteúdo (no `nano`: `Ctrl+V` cola no terminal SSH; `Ctrl+O` salva; `Ctrl+X` sai):
 
 ```env
-COBALT_API_URL=https://api-production-664d8.up.railway.app
+COBALT_API_URL=https://cobalt-production-e133.up.railway.app
 PORT=8080
 ```
 
@@ -216,7 +216,7 @@ docker build -t saveclip .
 
 ```bash
 docker run -d --name saveclip -p 80:8080 \
-  -e COBALT_API_URL=https://api-production-664d8.up.railway.app \
+  -e COBALT_API_URL=https://cobalt-production-e133.up.railway.app \
   saveclip
 ```
 
@@ -426,7 +426,9 @@ Em ~1 minuto seu site estará em **https://seu-dominio.com** ✅
 | `Cannot connect to the Docker daemon` | Usuário sem permissão | `sudo usermod -aG docker $USER` + reconectar |
 | Site abre, mas YouTube dá `error.api.youtube.login` | YouTube bloqueando IP de datacenter | Já há **retry + fallback Cobalt** automáticos (seção 11); opcional: adicionar `cookies.txt` para melhorar a qualidade (1080p) |
 | `error.api.ffmpeg.missing` | Imagem antiga sem ffmpeg | `docker compose build --no-cache` |
-| `error.api.timeout` / Instagram não baixa | Instância Cobalt fora do ar | Teste com `curl -s https://api-production-664d8.up.railway.app` na VM |
+| `error.api.timeout` / Instagram não baixa | Instância Cobalt fora do ar | Teste com `curl -s https://cobalt-production-e133.up.railway.app` na VM |
+| `{"code":404,"message":"Application not found"}` | A instância Cobalt foi removida do Railway (`x-railway-fallback: true`) | Recriar a instância com a imagem `ghcr.io/imputnet/cobalt:11` — veja [COMO CONFIGURAR.md](file:///c:/Users/Eduardo/Documents/GitHub/Site%20Downloader/COMO%20CONFIGURAR.md), seção 5 |
+| `502 Application failed to respond` | Container da Cobalt não responde (porta pública errada) | Railway → serviço → **Settings → Networking**: porta pública `9000` + confira os Deploy/Run logs |
 | Porta 80 já em uso | Outro serviço na porta 80 | `sudo ss -tulpn \| grep :80` |
 | Site some após reiniciar a VM | Container sem `restart` | Usar o `docker compose up -d` (já tem `restart: unless-stopped`) |
 
