@@ -11,6 +11,7 @@
     const navbar = document.getElementById('navbar');
     const urlInput = document.getElementById('url-input');
     const pasteBtn = document.getElementById('paste-btn');
+    const clearBtn = document.getElementById('clear-btn');
     const downloadBtn = document.getElementById('download-btn');
     const statusArea = document.getElementById('status-area');
     const resultCard = document.getElementById('result-card');
@@ -56,11 +57,29 @@
             const text = await navigator.clipboard.readText();
             urlInput.value = text;
             urlInput.focus();
+            updateClearButton();
             showStatus('📋 Link colado com sucesso!', 'success');
             autoDetectPlatform(text);
         } catch (err) {
             showStatus('Não foi possível acessar a área de transferência', 'error');
         }
+    });
+
+    // =========================================
+    // Clear button (limpar o link colado)
+    // =========================================
+    function updateClearButton() {
+        clearBtn.classList.toggle('visible', urlInput.value.trim().length > 0);
+    }
+
+    urlInput.addEventListener('input', updateClearButton);
+
+    clearBtn.addEventListener('click', () => {
+        urlInput.value = '';
+        updateClearButton();
+        urlInput.focus();
+        statusArea.innerHTML = '';
+        resultCard.classList.add('hidden');
     });
 
     // =========================================

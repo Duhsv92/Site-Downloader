@@ -475,6 +475,31 @@ ul {
     height: 18px;
 }
 
+.clear-btn {
+    padding: 10px;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.clear-btn.visible {
+    display: flex;
+}
+
+.clear-btn:hover {
+    color: #ff5c7a;
+    background: var(--bg-glass);
+}
+
+.clear-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
 .download-btn {
     display: flex;
     align-items: center;
