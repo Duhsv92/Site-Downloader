@@ -1,8 +1,8 @@
 # 🚀 Passo a Passo: Deploy do SaveClip na sua VM da Oracle
 
-> **Objetivo:** publicar o **SaveClip** (Site Downloader) na sua VM da Oracle Cloud, de forma que o site fique acessível pela internet em `http://147.15.122.54`, com tudo funcionando: **YouTube (MP4/MP3 via yt-dlp + ffmpeg, com fallback automático para a API Cobalt)** e **Instagram / Facebook / TikTok (via API Cobalt)**.
+> **Objetivo:** publicar o **SaveClip** (Site Downloader) na sua VM da Oracle Cloud, de forma que o site fique acessível pela internet em `http://147.15.122.54`, com tudo funcionando: **YouTube (via API Cobalt, com fallback automático para o yt-dlp)** e **Instagram / Facebook / TikTok (via API Cobalt)**.
 
-> ✅ **Status atual (24/09/2026):** o site está **no ar em HTTPS** — **https://saverclip.mobaily.com.br** (o `http://` redireciona sozinho) — com o **Caddy** (Let's Encrypt) na frente dos containers. A **Cobalt** atende a **API** em `https://saverclip.mobaily.com.br/cobalt/` (sub-caminho, sem DNS novo) e os **downloads** em `https://saverclip.mobaily.com.br/tunnel?...` (na raiz do domínio — a Cobalt usa só a origem do `API_URL`; veja 13.1). A **porta 443 já está liberada** na Security List da Oracle. Para ativar/reverter o HTTPS, veja a **seção 13**.
+> ✅ **Status atual:** o site está **no ar em HTTPS** — **https://saverclip.mobaily.com.br** (o `http://` redireciona sozinho) — com o **Caddy** (Let's Encrypt) na frente dos containers. A **API Cobalt** em uso é a instância do **Railway** (`https://api-production-65e6.up.railway.app`), que processa Instagram, Facebook, TikTok e YouTube; os downloads saem como links de `/tunnel` no domínio da Cobalt do Railway. A **porta 443 já está liberada** na Security List da Oracle. Para ativar/reverter o HTTPS, veja a **seção 13**.
 
 **Sua VM (verificada na prática em 13/08/2026):**
 
@@ -13,7 +13,7 @@
 | SO | Ubuntu 24.04 LTS |
 | Arquitetura | ARM64 (Ampere A1 — Always Free) |
 | Recursos | 2 vCPUs, 11 GB RAM, 193 GB disco |
-| Chave SSH que funciona | `C:\Users\Eduardo\Documentos\ssh-key-2026-08-13.key` |
+| Chave SSH que funciona | `C:\Users\Eduardo\Documents\ssh-key-2026-08-13.key` |
 
 **O que você vai aprender:**
 
@@ -70,7 +70,7 @@ Navegador do usuário
 
 Você já tem quase tudo:
 
-- ✅ Chave SSH válida nos Downloads (`ssh-key-2026-08-13.key`)
+- ✅ Chave SSH válida na pasta Documents (`ssh-key-2026-08-13.key`)
 - ✅ VM no ar (conexão já testada na seção 2)
 - ✅ Projeto com `Dockerfile` (o "molde" do container)
 - ✅ Repositório GitHub público (`github.com/Duhsv92/Site-Downloader`)
@@ -82,10 +82,10 @@ Você já tem quase tudo:
 
 ## 2. Conectar na VM (revisão rápida)
 
-Abra o **PowerShell** no Windows e use a chave do Downloads:
+Abra o **PowerShell** no Windows e use a chave da pasta Documents:
 
 ```powershell
-ssh -i C:\Users\Eduardo\Documentos\ssh-key-2026-08-13.key ubuntu@147.15.122.54
+ssh -i C:\Users\Eduardo\Documents\ssh-key-2026-08-13.key ubuntu@147.15.122.54
 ```
 
 Você deve cair no terminal da VM. Confirme:
@@ -101,7 +101,7 @@ uname -m      # deve mostrar: aarch64  (prova que é ARM64)
 
 Na VM vamos **baixar o código do GitHub** (`git clone`). Por isso o GitHub precisa estar com a versão mais nova do projeto.
 
-> ⚠️ **Importante:** o GitHub está **1 commit atrás** do seu PC (o `Dockerfile` e o `railway.json` ainda não subiram). Sem este passo, o `docker build` na VM falharia porque não existiria `Dockerfile`!
+> 🔑 O arquivo `.env` **não** sobe para o GitHub (está no `.gitignore`) — as variáveis sensíveis ficam só na VM.
 
 **No seu Windows** (na pasta `C:\Users\Eduardo\Documents\GitHub\Site Downloader`):
 
@@ -110,19 +110,14 @@ Na VM vamos **baixar o código do GitHub** (`git clone`). Por isso o GitHub prec
    git status
    ```
 
-2. O arquivo `api\Untitled` é um rascunho que não faz parte do site. Apague-o:
-   ```powershell
-   Remove-Item .\api\Untitled
-   ```
-
-3. Envie tudo (o `.env` **não** sobe — ele está no `.gitignore`):
+2. Envie tudo:
    ```powershell
    git add .
-   git commit -m "Deploy: Dockerfile, railway.json, docker-compose e modulo yt-dlp"
+   git commit -m "Descrição da mudança"
    git push origin main
    ```
 
-4. Confira no navegador: **github.com/Duhsv92/Site-Downloader** → a lista de arquivos deve mostrar `Dockerfile`, `railway.json` e `docker-compose.yml`.
+3. Confira no navegador: **github.com/Duhsv92/Site-Downloader** → a lista de arquivos deve mostrar `Dockerfile`, `railway.json` e `docker-compose.yml`.
 
 > 📚 **Aprenda o ciclo do git:** `git add .` marca os arquivos para envio → `git commit` cria um "ponto de salvamento" local → `git push` envia esse ponto para o GitHub. Daqui para frente, **toda atualização do site** segue exatamente esse ciclo (e o guia repete isso na seção 10).
 
@@ -155,7 +150,7 @@ sudo usermod -aG docker $USER
 ```bash
 exit
 # no Windows, conecte de novo:
-ssh -i C:\Users\Eduardo\Downloads\ssh-key-2026-08-13.key ubuntu@147.15.122.54
+ssh -i C:\Users\Eduardo\Documents\ssh-key-2026-08-13.key ubuntu@147.15.122.54
 ```
 
 **Teste se o Docker funciona:**
@@ -655,7 +650,7 @@ Os certificados continuam guardados no volume `caddy_data`, então voltar para H
 |---|---|---|
 | `Connection timed out` no navegador | Porta fechada no firewall da Oracle | Seção 8 (Security List + ufw) |
 | `Connection timed out` **só na 443** | Regra de 443 ausente, não salva, ou criada com origem errada (ex: `10.0.0.0/24` em vez de `0.0.0.0/0`) | Seção 13 — confirme a regra **TCP 443 / origem `0.0.0.0/0`**; use o teste `PROBE443` da seção 13, porque `timeout` no PC **não** prova porta fechada |
-| `Permission denied (publickey)` | Chave/usuario errados | Usar `Downloads\ssh-key-2026-08-13.key` + `ubuntu@` |
+| `Permission denied (publickey)` | Chave/usuario errados | Usar `Documents\ssh-key-2026-08-13.key` + `ubuntu@` |
 | `Please login as the user "ubuntu"` | Usou `opc` | Usar `ubuntu@147.15.122.54` |
 | `docker: command not found` | Docker não instalado | Seção 4 (e faça `exit` + reconectar) |
 | `Cannot connect to the Docker daemon` | Usuário sem permissão | `sudo usermod -aG docker $USER` + reconectar |
@@ -698,7 +693,7 @@ docker system prune -f             # limpar imagens antigas (libera disco)
 df -h                              # espaço em disco
 ```
 
-**Cadastrar sua chave `id_ed25519` na VM (opcional, para não depender do arquivo do Downloads):**
+**Cadastrar sua chave `id_ed25519` na VM (opcional, para não depender do arquivo de Documents):**
 
 ```bash
 mkdir -p ~/.ssh
