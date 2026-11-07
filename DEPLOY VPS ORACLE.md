@@ -13,7 +13,7 @@
 | SO | Ubuntu 24.04 LTS |
 | Arquitetura | ARM64 (Ampere A1 — Always Free) |
 | Recursos | 2 vCPUs, 11 GB RAM, 193 GB disco |
-| Chave SSH que funciona | `C:\Users\Eduardo\Downloads\ssh-key-2026-08-13.key` |
+| Chave SSH que funciona | `C:\Users\Eduardo\Documentos\ssh-key-2026-08-13.key` |
 
 **O que você vai aprender:**
 
@@ -85,7 +85,7 @@ Você já tem quase tudo:
 Abra o **PowerShell** no Windows e use a chave do Downloads:
 
 ```powershell
-ssh -i C:\Users\Eduardo\Downloads\ssh-key-2026-08-13.key ubuntu@147.15.122.54
+ssh -i C:\Users\Eduardo\Documentos\ssh-key-2026-08-13.key ubuntu@147.15.122.54
 ```
 
 Você deve cair no terminal da VM. Confirme:
@@ -190,20 +190,18 @@ nano .env
 Cole este conteúdo (no `nano`: `Ctrl+V` cola no terminal SSH; `Ctrl+O` salva; `Ctrl+X` sai):
 
 ```env
-# Endereço INTERNO da Cobalt (mesma rede do Docker) — rápido e seguro.
-COBALT_API_URL=http://cobalt:9000
-# Chave de API da sua instância Cobalt (UUID do arquivo keys.json — seção 11)
-COBALT_API_KEY=cole-aqui-o-uuid-gerado-na-seção-11
-COBALT_AUTH_SCHEME=Api-Key
+# Endereço da API Cobalt (instância do Railway — processa IG/FB/TikTok/YouTube).
+COBALT_API_URL=https://api-production-65e6.up.railway.app
+# Chave de API (só se a instância passar a exigir — hoje NÃO exige).
+# COBALT_API_KEY=cole-aqui-o-uuid
+# COBALT_AUTH_SCHEME=Api-Key
 # Porta INTERNA do site dentro do container e o endereço público dele
 PORT=8080
-APP_URL=http://saverclip.mobaily.com.br
-# Depois de ativar o HTTPS (seção 13), troque a linha acima por:
-# APP_URL=https://saverclip.mobaily.com.br
+APP_URL=https://saverclip.mobaily.com.br
 ```
 
-- `COBALT_API_URL` → sua instância Cobalt rodando **na própria VM** (processa Instagram, Facebook e TikTok, e é o **fallback** quando o YouTube bloqueia a VM). Como o site e a Cobalt ficam na **mesma rede do Docker**, usamos o nome `cobalt:9000` — assim nada sai pela internet e a API fica escondida dos visitantes.
-- `COBALT_API_KEY` + `COBALT_AUTH_SCHEME` → a chave que autoriza o site a usar a sua Cobalt (veja a seção 11). Devem ser **iguais às do `keys.json`** da VM.
+- `COBALT_API_URL` → a instância Cobalt do **Railway** que processa Instagram, Facebook, TikTok e o YouTube (com `yt-dlp` como fallback automático no YouTube). Os links de `/tunnel` (download) saem no domínio da Cobalt do Railway.
+- `COBALT_API_KEY` + `COBALT_AUTH_SCHEME` → hoje **comentados** (a instância do Railway não exige chave). Só preencha se a instância passar a exigir autenticação (seção 11).
 - `PORT=8080` → porta **dentro do container**. Não mude se usar o `docker-compose.yml` da seção 7 (o mapeamento de portas depende dela).
 - `APP_URL` → endereço público do site (usado apenas para referência/logs — o código não lê esta variável). No modo HTTPS da **seção 13**, ajuste para `https://saverclip.mobaily.com.br`.
 
@@ -505,39 +503,18 @@ docker compose restart saveclip                             # recarrega o .env d
 
 ---
 
-## 12. (Importante) YouTube bloqueado pela VM — cookies e fallback Cobalt
+## 12. (Importante) YouTube — Cobalt primeiro, yt-dlp como fallback
 
-**Sintoma:** alguns vídeos do YouTube (principalmente música) falham com **"Erro na API (HTTP 400)"**. Nos logs do container aparece:
+O YouTube agora é baixado **primeiro pela API Cobalt** (mesmo fluxo do Instagram/Facebook/TikTok). O `yt-dlp` ficou como **fallback automático**: quando a Cobalt responde erro — ex: `error.api.youtube.login`, o bloqueio "Sign in to confirm you're not a bot" típico de IP de datacenter (comum tanto no Railway quanto na Oracle) —, o `server.py` chama o yt-dlp e tenta completar o download.
 
-```
-ERROR: [youtube] <ID>: Sign in to confirm you're not a bot.
-Use --cookies-from-browser or --cookies for the authentication.
-```
+**Sintoma de bloqueio:** alguns vídeos do YouTube (principalmente música e Shorts) falham no caminho Cobalt e caem no yt-dlp. Nos logs aparecem `[youtube] Cobalt falhou: error.api.youtube.login` seguido de `[yt-dlp/fallback]` (com sucesso ou erro).
 
-**Causa:** o YouTube bloqueia seletivamente vídeos para **IPs de datacenter** (como o da Oracle). Não existe player client que contorne isso sozinho — é bloqueio por reputação de IP.
+**Como melhorar a taxa de sucesso:**
 
-**O que o projeto já faz (automático, sem ação sua):**
+1. **Na instância Cobalt (Railway):** crie um `cookies.json` no formato `{"youtube": ["cookie=...; b=..."]}` (exporte do navegador logado) e configure `COOKIE_PATH=/cookies.json` num volume — ou aponte `YOUTUBE_SESSION_SERVER` para um [yt-session-generator](https://github.com/imputnet/yt-session-generator). Isso elimina a maior parte dos bloqueios de IP.
+2. **No fallback yt-dlp:** mantenha um `cookies.txt` (exportado com a extensão "Get cookies.txt LOCALLY") montado no container — o `docker-compose.yml` já monta em `/app/cookies.txt` via `YTDLP_COOKIES`. Os cookies **expirem**: re-exporte quando o erro voltar.
 
-1. Tenta **player clients** confiáveis (`tv`/`android`).
-2. Se bloquear, faz **retry automático** rotacionando os clients (até 3 tentativas, com espera curta — o fallback entra em ~10-15s).
-3. Se ainda falhar, **fallback automático para a API Cobalt** (`server.py` → `_cobalt_request`). Desde a seção 11 essa Cobalt roda **na própria VM** (mesmo IP), então o resultado depende da mesma reputação de IP — quando ela consegue extrair, o download continua (em qualidade menor). O que realmente aumenta a taxa de sucesso no caminho de alta qualidade são os **cookies** abaixo.
-
-**Como melhorar o yt-dlp direto (opcional): cookies de uma conta logada**
-
-1. Instale a extensão **"Get cookies.txt LOCALLY"** no navegador.
-2. Acesse **youtube.com** logado e clique no ícone da extensão → **Export**.
-3. Envie o arquivo para a VM (PowerShell):
-   ```powershell
-   scp -i C:\Users\Eduardo\Downloads\ssh-key-2026-08-13.key C:\Users\Eduardo\Downloads\cookies.txt ubuntu@147.15.122.54:~/Site-Downloader/cookies.txt
-   ```
-4. Reinicie o container:
-   ```bash
-   cd ~/Site-Downloader && docker compose restart
-   ```
-
-O arquivo é montado em `/app/cookies.txt` (variável `YTDLP_COOKIES` no `docker-compose.yml`) e **nunca vai para o GitHub** (está no `.gitignore`). Os cookies **expirem** — quando o erro voltar, re-exporte e repita os passos 3 e 4.
-
-> 💡 **Resumo da estratégia:** o **yt-dlp direto** entrega 1080p/MP3 320kbps quando o YouTube libera; o **fallback Cobalt** garante que nenhum vídeo fique sem download; os **cookies** aumentam a chance do caminho de melhor qualidade.
+> 💡 **Resumo da estratégia:** a **Cobalt** entrega o YouTube (1080p/MP3 320kbps) quando libera; o **yt-dlp** garante que nenhum vídeo fique sem download; os **cookies** (nos dois lados) aumentam a chance do caminho principal.
 
 ---
 

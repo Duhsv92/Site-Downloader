@@ -44,10 +44,9 @@ app = Flask(__name__, static_folder='.')
 # ==============================================================================
 
 # Padrão usado só quando COBALT_API_URL não está definida (ex: rodando sem .env).
-# Aponta para a instância Cobalt self-hosted da VM, já no modo HTTPS (seção 13
-# do DEPLOY VPS ORACLE.md): sub-caminho /cobalt/ do próprio domínio do site.
-# Dentro do Docker (produção) o .env usa o nome interno da rede: cobalt:9000
-DEFAULT_COBALT_URL = "https://saverclip.mobaily.com.br/cobalt"
+# Aponta para a instância Cobalt do Railway, que processa Instagram, Facebook,
+# TikTok e agora também o YouTube (fluxo principal — veja /api/download).
+DEFAULT_COBALT_URL = "https://api-production-65e6.up.railway.app"
 
 raw_url = os.environ.get("COBALT_API_URL", DEFAULT_COBALT_URL).strip().rstrip("/")
 if raw_url and not (raw_url.startswith("http://") or raw_url.startswith("https://")):
@@ -154,9 +153,23 @@ def api_download():
     url = body["url"].strip()
 
     # ========================================================
-    # YOUTUBE -> yt-dlp (novo método de download)
+    # YOUTUBE -> API Cobalt (fluxo principal) com fallback yt-dlp
     # ========================================================
     if is_youtube_url(url):
+        # 1) Tenta a API Cobalt primeiro (agora o método principal do YouTube).
+        if COBALT_API_URL:
+            try:
+                data, status = _cobalt_request(url, body)
+                if status == 200 and isinstance(data, dict) and data.get("status") in ("tunnel", "redirect", "picker"):
+                    print("[youtube] OK via Cobalt", flush=True)
+                    return jsonify(data), status
+                cobalt_code = (data or {}).get("error", {}).get("code") if isinstance(data, dict) else None
+                print(f"[youtube] Cobalt falhou: {cobalt_code or status}", flush=True)
+            except Exception as exc:
+                print(f"[youtube] Cobalt ERRO: {exc}", flush=True)
+
+        # 2) Fallback automático: yt-dlp, quando a Cobalt falha (ex: bloqueio
+        #    "Sign in to confirm you're not a bot" em IP de datacenter).
         try:
             return jsonify(
                 build_youtube_result(url, body.get("videoQuality", "1080"))
@@ -164,18 +177,7 @@ def api_download():
         except Exception as exc:
             err_code = map_ytdlp_error(exc)
             # Log do erro real para diagnóstico nos logs
-            print(f"[yt-dlp/metadata] ERRO: {exc}", flush=True)
-
-            # Fallback automático: quando o YouTube bloqueia o IP de datacenter
-            # da VM ("Sign in to confirm you're not a bot"), tenta a API Cobalt
-            # (self-hosted na VM ou uma instância externa — veja COBALT_API_URL).
-            if err_code == "error.api.youtube.login" and COBALT_API_URL:
-                try:
-                    data, status = _cobalt_request(url, body)
-                    print("[cobalt-fallback] YouTube OK via Cobalt", flush=True)
-                    return jsonify(data), status
-                except Exception as exc2:
-                    print(f"[cobalt-fallback] ERRO: {exc2}", flush=True)
+            print(f"[yt-dlp/fallback] ERRO: {exc}", flush=True)
 
             return jsonify({
                 "status": "error",

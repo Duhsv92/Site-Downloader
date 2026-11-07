@@ -192,7 +192,7 @@
 
     // =========================================
     // BACKEND — Processamento principal
-    // (YouTube via yt-dlp; demais via Cobalt)
+    // (YouTube agora via Cobalt, com yt-dlp como fallback; demais via Cobalt)
     // =========================================
     async function processWithCobalt(url) {
         showStatus('⏳ Processando seu vídeo...', 'info');
@@ -297,7 +297,7 @@
             'error.api.link.unsupported': 'Este tipo de link não é suportado.',
             'error.api.auth.key.missing': 'Serviço temporariamente indisponível. Tente novamente mais tarde.',
             'error.api.auth.jwt.missing': 'Esta instância requer autenticação Bearer.',
-            'error.api.youtube.login': 'O YouTube exige login nesta instância. Verifique se o servidor tem a configuração de YouTube habilitada.',
+            'error.api.youtube.login': 'O YouTube bloqueou esta requisição (comum em servidores). Tente novamente em alguns segundos.',
             'error.api.youtube.private': 'Este vídeo do YouTube é privado ou não está disponível.',
             'error.api.youtube.region': 'Este vídeo do YouTube não está disponível na sua região.',
             'error.api.youtube.membership': 'Este vídeo do YouTube é exclusivo para membros do canal.',
@@ -599,7 +599,7 @@
             const data = await response.json();
 
             if (data.status === 'tunnel' || data.status === 'redirect') {
-                // Usa o link de áudio quando disponível (ex: YouTube via yt-dlp),
+                // Usa o link de áudio quando disponível (ex: YouTube),
                 // evitando baixar o vídeo inteiro no lugar do MP3
                 const audioUrl = data.audio || data.url;
                 const audioName = data.audioFilename || data.filename || audioFilename;
